@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ScanLine, Package, ChefHat, ArrowRight } from "lucide-react";
-import { ScannerModal } from "./ScannerModal";
+// import { ScannerModal } from "./ScannerModal";
 
 const STEPS = [
   {
@@ -14,14 +14,14 @@ const STEPS = [
   {
     icon: Package,
     step: "02",
-    title: "Орцоо таниулах",
+    title: "Бүтээгдэхүүнээ таньж мэд",
     desc: "Тухайн бүтээгдэхүүний мэдээлэл автоматаар тодорхойлогдоно.",
   },
   {
     icon: ChefHat,
     step: "03",
-    title: "Жороо сонго",
-    desc: "Тэр орцыг ашигласан хамгийн тохирох жоруудаас сонгоно уу.",
+    title: "Өөрт тохирох эсэхээ шийд",
+    desc: "Бүтээгдэхүүнд харшилтай эсвэл тохирохгүй орц байгаа эсэхийг мэдэж ав.",
   },
 ];
 
@@ -39,11 +39,11 @@ export function ScanSection() {
             </div>
             <h2 className="font-serif-display text-[38px] font-semibold text-chimge-ink mb-4 leading-tight">
               Баркод скан хийж{" "}
-              <span className="text-chimge-primary italic">жорыг</span> ол
+              <span className="text-chimge-primary italic">мэдээллийг</span> хар
             </h2>
             <p className="text-[15px] text-chimge-ink-2 leading-relaxed mb-8">
               Дэлгүүрт байгаа бүтээгдэхүүний баркодыг скан хийхэд л болно —
-              тухайн орцоор хийж болох жоруудыг бид шуурхай үзүүлнэ.
+              тухайн бүтээгдэхүүний мэдээллийг автоматаар тодорхойлогдоно.
             </p>
 
             <div className="flex flex-col gap-5 mb-8">
@@ -51,7 +51,7 @@ export function ScanSection() {
                 const Icon = s.icon;
                 return (
                   <div key={s.step} className="flex gap-4">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-chimge-primary-soft flex items-center justify-center">
+                    <div className="shrink-0 w-10 h-10 rounded-xl bg-chimge-primary-soft flex items-center justify-center">
                       <Icon size={18} className="text-chimge-primary" />
                     </div>
                     <div>
@@ -80,9 +80,9 @@ export function ScanSection() {
 
           {/* Right — phone mockup */}
           <div className="flex justify-center">
-            <div className="relative w-[260px] h-[500px] bg-chimge-ink rounded-[36px] shadow-2xl flex flex-col items-center justify-center overflow-hidden border-4 border-chimge-ink-2">
+            <div className="relative w-65 h-125 bg-chimge-ink rounded-[36px] shadow-2xl flex flex-col items-center justify-center overflow-hidden border-4 border-chimge-ink-2">
               {/* Camera viewfinder */}
-              <div className="relative w-[180px] h-[180px]">
+              <div className="relative w-45 h-45">
                 <div className="absolute inset-0 rounded-2xl border-2 border-white/20" />
                 {/* Corner brackets */}
                 {[
@@ -120,10 +120,10 @@ export function ScanSection() {
                   Илэрц олдлоо →
                 </div>
                 <div className="text-[13px] font-semibold text-chimge-ink">
-                  Тосон гурил 2кг
+                  Хүүхдийн жигнэмэг 500мл
                 </div>
                 <div className="text-[11px] text-chimge-primary mt-0.5">
-                  12 жор боломжтой
+                  Харшилтай орц: Сүү
                 </div>
               </div>
             </div>
@@ -131,7 +131,7 @@ export function ScanSection() {
         </div>
       </section>
 
-      {open && <ScannerModal onClose={() => setOpen(false)} />}
+      {/* {open && <ScannerModal onClose={() => setOpen(false)} />} */}
     </>
   );
 }

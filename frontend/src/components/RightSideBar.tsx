@@ -31,7 +31,7 @@ const FRIEND_SAVES = [
 
 export function RightSidebar() {
   return (
-    <aside className="w-[276px] flex-shrink-0 border-l border-chimge-line overflow-y-auto px-5 py-5 flex flex-col gap-4 bg-chimge-bg">
+    <aside className="w-69 shrink-0 border-l border-chimge-line overflow-y-auto px-5 py-5 flex flex-col gap-4 bg-chimge-bg">
       {/* My Ingredients */}
       <div className="bg-white rounded-2xl border border-chimge-line p-4">
         <div className="flex items-center justify-between mb-3">
@@ -46,7 +46,7 @@ export function RightSidebar() {
           {INGREDIENTS.map((ing) => (
             <span
               key={ing}
-              className="text-[11.5px] px-2.5 py-[3px] rounded-full bg-chimge-sage-soft text-chimge-sage font-medium"
+              className="text-[11.5px] px-2.5 py-0.75 rounded-full bg-chimge-sage-soft text-chimge-sage font-medium"
             >
               {ing}
             </span>
@@ -79,7 +79,7 @@ export function RightSidebar() {
           {FRIEND_SAVES.map((f) => (
             <div key={f.name} className="flex items-start gap-2.5">
               <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 mt-0.5"
+                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-bold shrink-0 mt-0.5"
                 style={{ background: f.bg }}
               >
                 {f.initial}
@@ -89,7 +89,7 @@ export function RightSidebar() {
                 хадгаллаа ·{" "}
                 <span className="italic text-chimge-ink-3">{f.recipe}</span>
               </div>
-              <span className="text-[11px] text-chimge-ink-3 flex-shrink-0 mt-0.5">
+              <span className="text-[11px] text-chimge-ink-3 shrink-0 mt-0.5">
                 {f.time}
               </span>
             </div>

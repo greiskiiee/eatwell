@@ -28,6 +28,8 @@ const config: Config = {
       fontFamily: {
         sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
         serif: ["Fraunces", "Georgia", "serif"],
+        fraunces: ["var(--font-fraunces)"],
+        inter: ["var(--font-inter)"],
       },
       keyframes: {
         fadeIn: { from: { opacity: "0" }, to: { opacity: "1" } },

@@ -9,7 +9,7 @@ interface QuickFiltersProps {
 
 export function QuickFilters({ active, onChange }: QuickFiltersProps) {
   return (
-    <div className="flex items-center gap-2 flex-shrink-0 mt-1">
+    <div className="flex items-center gap-2 shrink-0 mt-1">
       {FILTERS.map((f) => (
         <button
           key={f}

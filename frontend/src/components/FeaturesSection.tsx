@@ -58,7 +58,7 @@ export function FeaturesSection() {
             EatWell+ платформын{" "}
             <span className="text-chimge-primary italic">гол онцлогууд</span>
           </h2>
-          <p className="text-[15px] text-chimge-ink-3 max-w-[500px] mx-auto leading-relaxed">
+          <p className="text-[15px] text-chimge-ink-3 max-w-125 mx-auto leading-relaxed">
             Монголын хэрэглэгчдийн хэрэгцээ, хоолны технологичдын мэдлэгийг
             нэгтгэсэн иж бүрэн шийдэл.
           </p>

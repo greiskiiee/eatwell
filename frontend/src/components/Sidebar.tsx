@@ -23,7 +23,7 @@ const ALLERGENS = ["Самар", "Далайн хоол", "Шарваага"];
 
 export function Sidebar() {
   return (
-    <aside className="w-[220px] flex-shrink-0 bg-white border-r border-chimge-line flex flex-col">
+    <aside className="w-55 shrink-0 bg-white border-r border-chimge-line flex flex-col">
       {/* Logo */}
       <div className="px-6 pt-6 pb-5">
         <span className="font-serif-display text-[28px] font-semibold leading-none">
@@ -40,7 +40,7 @@ export function Sidebar() {
             <button
               key={item.label}
               className={[
-                "flex items-center gap-3 w-full px-3 py-[9px] rounded-xl text-[13.5px] font-medium text-left transition-colors",
+                "flex items-center gap-3 w-full px-3 py-2.25 rounded-xl text-[13.5px] font-medium text-left transition-colors",
                 item.active
                   ? "bg-chimge-primary-soft text-chimge-primary"
                   : "text-chimge-ink-2 hover:bg-chimge-bg",
@@ -66,7 +66,7 @@ export function Sidebar() {
             {ALLERGENS.map((a) => (
               <span
                 key={a}
-                className="text-[11px] px-2.5 py-[3px] rounded-full bg-chimge-warn-soft text-chimge-warn font-medium"
+                className="text-[11px] px-2.5 py-0.75 rounded-full bg-chimge-warn-soft text-chimge-warn font-medium"
               >
                 {a}
               </span>
@@ -80,7 +80,7 @@ export function Sidebar() {
 
       {/* User */}
       <div className="flex items-center gap-2.5 px-4 py-3.5 border-t border-chimge-line">
-        <div className="w-8 h-8 rounded-full bg-[#C58772] text-[#FFF8EC] flex items-center justify-center font-semibold text-[13px] flex-shrink-0">
+        <div className="w-8 h-8 rounded-full bg-[#C58772] text-[#FFF8EC] flex items-center justify-center font-semibold text-[13px] shrink-0">
           А
         </div>
         <div className="flex-1 min-w-0">

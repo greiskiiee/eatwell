@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ScanLine, Menu, X } from "lucide-react";
-import { ScannerModal } from "./ScannerModal";
+// import { ScannerModal } from "./ScannerModal";
 
 export function LandingNav() {
   const [scanOpen, setScanOpen] = useState(false);
@@ -114,7 +114,7 @@ export function LandingNav() {
           </div>
         )}
       </nav>
-      {scanOpen && <ScannerModal onClose={() => setScanOpen(false)} />}
+      {/* {scanOpen && <ScannerModal onClose={() => setScanOpen(false)} />} */}
     </>
   );
 }

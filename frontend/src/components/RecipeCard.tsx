@@ -10,7 +10,7 @@ export function RecipeCard() {
     <div className="bg-white rounded-2xl overflow-hidden border border-chimge-line shadow-sm">
       {/* Hero image */}
       <div
-        className="relative h-[255px]"
+        className="relative h-63.75"
         style={{
           background:
             "repeating-linear-gradient(-45deg,#b08448 0,#b08448 16px,#c09558 16px,#c09558 32px)",
@@ -47,10 +47,10 @@ export function RecipeCard() {
       {/* Body */}
       <div className="px-5 py-4">
         <div className="flex gap-2 mb-3">
-          <span className="text-[11.5px] px-2.5 py-[3px] rounded-full bg-chimge-primary-soft text-chimge-primary font-medium">
+          <span className="text-[11.5px] px-2.5 py-0.75 rounded-full bg-chimge-primary-soft text-chimge-primary font-medium">
             Үндэсний хоол
           </span>
-          <span className="text-[11.5px] px-2.5 py-[3px] rounded-full bg-chimge-bg text-chimge-ink-2 font-medium border border-chimge-line">
+          <span className="text-[11.5px] px-2.5 py-0.75 rounded-full bg-chimge-bg text-chimge-ink-2 font-medium border border-chimge-line">
             Уламжлалт
           </span>
         </div>
@@ -64,13 +64,13 @@ export function RecipeCard() {
           болгосон үхрийн махан хорхог.
         </p>
 
-        <div className="flex items-center gap-[10px] text-[13px] text-chimge-ink-3 flex-wrap">
+        <div className="flex items-center gap-2.5 text-[13px] text-chimge-ink-3 flex-wrap">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-full bg-chimge-sage-soft flex items-center justify-center text-[10px] font-bold text-chimge-sage">
               Б
             </div>
             <span className="font-medium text-chimge-ink-2">Б. Сараа</span>
-            <span className="text-[9.5px] px-[5px] py-[1px] rounded-full bg-chimge-sage-soft text-chimge-sage font-bold">
+            <span className="text-[9.5px] px-1.25 py-px rounded-full bg-chimge-sage-soft text-chimge-sage font-bold">
               ✓
             </span>
           </div>

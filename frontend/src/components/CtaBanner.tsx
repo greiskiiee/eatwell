@@ -3,7 +3,7 @@ export function CtaBanner() {
     <section className="py-20 px-6 bg-white border-t border-chimge-line">
       <div className="max-w-2xl mx-auto text-center">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-chimge-primary-soft text-chimge-primary text-[12px] font-semibold mb-6">
-          🎓 МХТДС — Дипломын ажил 2026
+          Төгсөлтийн ажил
         </div>
         <h2 className="font-serif-display text-[40px] font-semibold text-chimge-ink mb-4 leading-tight">
           EatWell+ платформыг туршиж үзэх үү?

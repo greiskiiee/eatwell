@@ -76,17 +76,17 @@ export function RecipeShowcase() {
               className="bg-white rounded-2xl border border-chimge-line overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer group"
             >
               <div
-                className={`h-[140px] bg-gradient-to-br ${r.gradient} flex items-center justify-center text-5xl relative`}
+                className={`h-35 bg-linear-to-br ${r.gradient} flex items-center justify-center text-5xl relative`}
               >
                 {r.emoji}
                 {r.premium && (
-                  <span className="absolute top-2 right-2 text-[9.5px] px-2 py-[2px] rounded-full bg-chimge-gold text-white font-bold">
+                  <span className="absolute top-2 right-2 text-[9.5px] px-2 py-0.5 rounded-full bg-chimge-gold text-white font-bold">
                     Premium
                   </span>
                 )}
               </div>
               <div className="p-4">
-                <span className="text-[10.5px] px-2.5 py-[3px] rounded-full bg-chimge-primary-soft text-chimge-primary font-semibold">
+                <span className="text-[10.5px] px-2.5 py-0.75 rounded-full bg-chimge-primary-soft text-chimge-primary font-semibold">
                   {r.tag}
                 </span>
                 <h3 className="font-serif-display text-[15px] font-semibold text-chimge-ink mt-2 mb-2 leading-snug line-clamp-2">
