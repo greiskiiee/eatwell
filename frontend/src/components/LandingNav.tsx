@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { ScanLine, Menu, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 // import { ScannerModal } from "./ScannerModal";
 
 export function LandingNav() {
+  const router = useRouter();
   const [scanOpen, setScanOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -16,9 +18,6 @@ export function LandingNav() {
             <span className="font-serif-display text-[24px] font-semibold leading-none">
               <span className="text-chimge-primary">EatWell</span>
               <span className="text-chimge-ink">+</span>
-            </span>
-            <span className="text-[10px] font-bold text-chimge-ink-3 border border-chimge-line px-2 py-0.5 rounded-full hidden sm:inline">
-              ДИПЛОМЫН АЖИЛ
             </span>
           </div>
 
@@ -57,10 +56,16 @@ export function LandingNav() {
               <ScanLine size={15} className="text-chimge-primary" />
               Баркод скан
             </button>
-            <button className="px-4 py-2 rounded-xl text-[13px] font-medium text-chimge-ink-2 hover:bg-chimge-bg transition-colors">
+            <button
+              onClick={() => router.replace("/login")}
+              className="px-4 py-2 rounded-xl text-[13px] font-medium text-chimge-ink-2 hover:bg-chimge-bg transition-colors"
+            >
               Нэвтрэх
             </button>
-            <button className="px-4 py-2 rounded-xl bg-chimge-primary text-[#FFF8EC] text-[13px] font-semibold hover:bg-chimge-primary-dk transition-colors">
+            <button
+              onClick={() => router.replace("/signup")}
+              className="px-4 py-2 rounded-xl bg-chimge-primary text-[#FFF8EC] text-[13px] font-semibold hover:bg-chimge-primary-dk transition-colors"
+            >
               Бүртгүүлэх
             </button>
           </div>
