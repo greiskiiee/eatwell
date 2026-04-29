@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { authApi, storeAuth } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,10 +19,11 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      // await login(email, password);
-      router.replace("/");
+      const { token, user } = await authApi.login(email, password);
+      storeAuth(token, user);
+      router.replace("/home");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Нэвтрэх боломжгүй байна");
+      setError("И-мэйл эсвэл нууц үг буруу байна");
     } finally {
       setLoading(false);
     }

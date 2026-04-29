@@ -18,8 +18,8 @@ export const Sidebar = () => {
       {/* Logo */}
       <div className="px-6 pt-6 pb-5">
         <span className="font-display text-[28px] font-semibold leading-none">
-          <span className="text-[#B84230]">Chimge</span>
-          <span className="text-[#221C16]">.</span>
+          <span className="text-[#B84230]">Eatwell</span>
+          <span className="text-[#221C16]">+</span>
         </span>
       </div>
 

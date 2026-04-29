@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { authApi, storeAuth } from "@/lib/auth";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -28,8 +29,8 @@ export default function SignupPage() {
     setError("");
     setLoading(true);
     try {
-      //   const { token } = await authApi.signup({ name, email, password });
-      //   localStorage.setItem("chimge_token", token);
+      const { token, user } = await authApi.signup({ name, email, password });
+      storeAuth(token, user);
       router.replace("/onboarding");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Бүртгэл үүсгэх боломжгүй");

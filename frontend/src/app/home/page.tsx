@@ -24,6 +24,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { CATEGORIES, MOCK_RECIPES } from "@/lib/constants";
 import RecipeCard from "@/components/RecipeCard";
 import type { Recipe } from "@/lib/types";
+import { getStoredUser } from "@/lib/auth";
 
 function Stripes() {
   return (
@@ -177,6 +178,9 @@ export default function HomePage() {
   const [category, setCategory] = useState("Бүгд");
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [searchQ, setSearchQ] = useState("");
+  const [isTechnologist] = useState(
+    () => getStoredUser()?.role === "technologist",
+  );
 
   const featured = MOCK_RECIPES.find((r) => r.isFeatured)!;
   const rest = MOCK_RECIPES.filter((r) => !r.isFeatured);
@@ -196,7 +200,8 @@ export default function HomePage() {
   function toggleSave(id: string) {
     setSavedIds((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -234,14 +239,16 @@ export default function HomePage() {
             >
               <Bell size={16} />
             </button>
-            <Link
-              href="/add-recipe"
-              className="flex items-center gap-2 px-4 py-[7px] rounded-xl bg-[#B84230] text-white
+            {isTechnologist && (
+              <Link
+                href="/add-recipe"
+                className="flex items-center gap-2 px-4 py-[7px] rounded-xl bg-[#B84230] text-white
                          text-[13px] font-semibold hover:bg-[#9C3426] transition-colors shadow-sm"
-            >
-              <Plus size={14} />
-              Жор нэмэх
-            </Link>
+              >
+                <Plus size={14} />
+                Жор нэмэх
+              </Link>
+            )}
           </div>
         </header>
 
