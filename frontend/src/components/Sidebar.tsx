@@ -4,6 +4,7 @@ import { AuthUser, getStoredUser } from "@/lib/auth";
 import { ALLERGENS, NAV_ITEMS } from "@/lib/constants";
 import { Menu, Settings, X } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export const Sidebar = () => {
@@ -12,11 +13,15 @@ export const Sidebar = () => {
     return getStoredUser();
   });
   const [open, setOpen] = useState(false);
+  const router = useRouter();
 
   const content = (
     <aside className="w-55 shrink-0 bg-white border-r border-[#D6C9B4] flex flex-col h-full">
       {/* Logo */}
-      <div className="px-6 pt-6 pb-5 flex items-center justify-between">
+      <div
+        onClick={() => router.push("/")}
+        className="px-6 pt-6 pb-5 flex items-center justify-between"
+      >
         <span className="font-display text-[28px] font-semibold leading-none">
           <span className="text-[#B84230]">Eatwell</span>
           <span className="text-[#221C16]">+</span>

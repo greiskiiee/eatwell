@@ -65,7 +65,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12">
       {/* Logo */}
-      <div className="mb-10 text-center">
+      <div onClick={() => router.replace("/")} className="mb-10 text-center">
         <h1 className="font-display text-4xl font-semibold text-chimge-primary mb-1">
           Eatwell+
         </h1>

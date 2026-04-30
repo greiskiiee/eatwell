@@ -32,18 +32,18 @@ const FEATURES = [
     title: "Баркод скан",
     desc: "Дэлгүүрийн бараагаа камераар скан хийгээд тухайн орцыг ашигласан жоруудыг нэн даруй хар.",
   },
-  {
-    icon: CalendarDays,
-    color: "bg-chimge-gold-soft text-chimge-gold",
-    title: "7 хоногийн төлөвлөгөө",
-    desc: "Долоо хоногийн хоолны цагийн хуваарийг урьдчилан гаргаж, жигд хооллох хэвшил тогтоо.",
-  },
-  {
-    icon: ShoppingBasket,
-    color: "bg-chimge-sage-soft text-chimge-sage",
-    title: "Автомат дэлгүүрийн жагсаалт",
-    desc: "Жор сонгоход зайлшгүй орцуудын жагсаалт автоматаар үүсч, дэлгүүрт явах цагаа хэмнэнэ.",
-  },
+  // {
+  //   icon: CalendarDays,
+  //   color: "bg-chimge-gold-soft text-chimge-gold",
+  //   title: "7 хоногийн төлөвлөгөө",
+  //   desc: "Долоо хоногийн хоолны цагийн хуваарийг урьдчилан гаргаж, жигд хооллох хэвшил тогтоо.",
+  // },
+  // {
+  //   icon: ShoppingBasket,
+  //   color: "bg-chimge-sage-soft text-chimge-sage",
+  //   title: "Автомат дэлгүүрийн жагсаалт",
+  //   desc: "Жор сонгоход зайлшгүй орцуудын жагсаалт автоматаар үүсч, дэлгүүрт явах цагаа хэмнэнэ.",
+  // },
 ];
 
 export function FeaturesSection() {

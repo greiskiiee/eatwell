@@ -29,17 +29,17 @@ export function LandingNav() {
               Онцлог
             </a>
             <a
-              href="#recipes"
+              href="home"
               className="hover:text-chimge-primary transition-colors"
             >
               Жорууд
             </a>
-            <a
+            {/* <a
               href="#roles"
               className="hover:text-chimge-primary transition-colors"
             >
               Хэрэглэгчид
-            </a>
+            </a> */}
             <a
               href="#scan"
               className="hover:text-chimge-primary transition-colors"
@@ -87,16 +87,10 @@ export function LandingNav() {
               Онцлог
             </a>
             <a
-              href="#recipes"
+              href="home"
               className="text-[14px] font-medium text-chimge-ink-2 py-1"
             >
               Жорууд
-            </a>
-            <a
-              href="#roles"
-              className="text-[14px] font-medium text-chimge-ink-2 py-1"
-            >
-              Хэрэглэгчид
             </a>
             <a
               href="#scan"
@@ -112,7 +106,10 @@ export function LandingNav() {
                 <ScanLine size={15} className="text-chimge-primary" /> Баркод
                 скан
               </button>
-              <button className="flex-1 py-2.5 rounded-xl bg-chimge-primary text-[#FFF8EC] text-[13px] font-semibold">
+              <button
+                onClick={() => router.replace("/signup")}
+                className="flex-1 py-2.5 rounded-xl bg-chimge-primary text-[#FFF8EC] text-[13px] font-semibold"
+              >
                 Бүртгүүлэх
               </button>
             </div>
