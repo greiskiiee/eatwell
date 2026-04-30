@@ -21,8 +21,16 @@ const TechnologistRecipeSchema = new mongoose.Schema(
       ref: "User",
       index: true,
     },
+    isDraft: { type: Boolean, default: true },
+    isPremium: { type: Boolean, default: false },
+    price: { type: Number, min: 0, default: 0 },
     createdBy: { type: String, default: "food-technologist" },
+    videoUrl: { type: String, default: "" },
+    imageUrl: { type: String, default: "" },
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
   },
+
   { timestamps: true },
 );
 

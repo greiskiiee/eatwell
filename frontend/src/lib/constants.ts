@@ -1,11 +1,4 @@
-import {
-  Bookmark,
-  BookOpen,
-  Calendar,
-  Home,
-  Search,
-  ShoppingCart,
-} from "lucide-react";
+import { Bookmark, Home, Search, ShoppingCart } from "lucide-react";
 
 export const ALLERGENS = [
   { id: "gluten", label: "Gluten", emoji: "🌾" },
@@ -26,21 +19,16 @@ export const NAV_ITEMS = [
   { icon: Home, label: "Нүүр", href: "/", active: true },
   { icon: Search, label: "Хайх", href: "/search", active: false },
   { icon: Bookmark, label: "Хадгалсан", href: "/saved", active: false },
-  {
-    icon: BookOpen,
-    label: "Миний хоолны дэвтэр",
-    href: "/my-recipes",
-    active: false,
-  },
-  {
-    icon: Calendar,
-    label: "Долоо хоногийн төлөвлөгөө",
-    href: "/planner",
-    active: false,
-  },
+  // {
+  //   icon: BookOpen,
+  //   label: "Миний хоолны дэвтэр",
+  //   href: "/my-recipes",
+  //   active: false,
+  // },
+
   {
     icon: ShoppingCart,
-    label: "Дэлгүүрийн жагсаалт",
+    label: "Худалдаж авсан жорууд",
     href: "/shopping",
     active: false,
   },

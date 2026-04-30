@@ -49,7 +49,7 @@ export function HomeHeader({
         </button>
         {isTechnologist && (
           <Link
-            href="/add-recipe"
+            href="/new-recipe"
             className="flex items-center gap-2 px-3 md:px-4 py-1.75 rounded-xl bg-[#B84230] text-white
                        text-[13px] font-semibold hover:bg-[#9C3426] transition-colors shadow-sm"
           >

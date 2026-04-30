@@ -10,6 +10,7 @@ import { usersRouter } from "./routes/users";
 import { technologistRecipesRouter } from "./routes/technologistRecipes";
 import { externalRecipesRouter } from "./routes/externalRecipes";
 import { barcodeRouter } from "./routes/barcode";
+import { recipesRouter } from "./routes/recipes";
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ app.use("/api/users", usersRouter);
 app.use("/api/technologist-recipes", technologistRecipesRouter);
 app.use("/api/external-recipes", externalRecipesRouter);
 app.use("/api/barcode", barcodeRouter);
+app.use("/api/recipes", recipesRouter);
 
 app.use(notFound);
 app.use(errorHandler);
