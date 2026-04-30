@@ -15,9 +15,17 @@ import { recipesRouter } from "./routes/recipes";
 dotenv.config();
 
 const app = express();
+
+const allowedOrigins = ["http://localhost:3000", process.env.CORS_ORIGIN];
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : true,
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   }),
 );

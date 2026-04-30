@@ -6,7 +6,8 @@
     "dev": "ts-node-dev --respawn src/index.ts",
     "build": "tsc",
     "lint": "eslint src",
-    "test": "jest --passWithNoTests"
+    "test": "jest --passWithNoTests",
+    "test:coverage": "jest --coverage"
   },
   "author": "",
   "license": "ISC",

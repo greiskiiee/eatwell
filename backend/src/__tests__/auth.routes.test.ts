@@ -7,11 +7,8 @@ import { TechnologistProfileModel } from "../models/TechnologistProfile";
 import { signAccessToken } from "../lib/auth";
 
 jest.mock("bcryptjs", () => ({
-  __esModule: true,
-  default: {
-    hash: jest.fn(),
-    compare: jest.fn(),
-  },
+  hash: jest.fn(),
+  compare: jest.fn(),
 }));
 
 jest.mock("../models/User", () => ({
@@ -154,7 +151,9 @@ describe("Auth routes", () => {
     });
     mockedSignAccessToken.mockReturnValue("jwt-google");
 
-    const res = await request(app).post("/api/auth/google").send({ idToken: "google-id-token" });
+    const res = await request(app)
+      .post("/api/auth/google")
+      .send({ idToken: "google-id-token" });
 
     expect(res.status).toBe(200);
     expect(mockedGoogleClient.verifyIdToken).toHaveBeenCalled();
@@ -169,4 +168,3 @@ describe("Auth routes", () => {
     });
   });
 });
-
