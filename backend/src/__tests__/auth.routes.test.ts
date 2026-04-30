@@ -1,7 +1,7 @@
 import express from "express";
 import request from "supertest";
 import bcrypt from "bcryptjs";
-import { authRouter } from "../routes/auth";
+import { authRouter, googleClient } from "../routes/auth";
 import { UserModel } from "../models/User";
 import { TechnologistProfileModel } from "../models/TechnologistProfile";
 import { signAccessToken } from "../lib/auth";
@@ -43,6 +43,9 @@ const mockedTechProfileModel = TechnologistProfileModel as unknown as {
   create: jest.Mock;
 };
 const mockedSignAccessToken = signAccessToken as jest.Mock;
+const mockedGoogleClient = googleClient as unknown as {
+  verifyIdToken: jest.Mock;
+};
 
 function buildApp() {
   const app = express();
@@ -132,6 +135,38 @@ describe("Auth routes", () => {
 
     expect(res.status).toBe(401);
     expect(res.body).toEqual({ error: "INVALID_CREDENTIALS" });
+  });
+
+  it("google login returns token and user", async () => {
+    process.env.GOOGLE_CLIENT_ID = "google-client-id";
+    mockedGoogleClient.verifyIdToken = jest.fn().mockResolvedValue({
+      getPayload: () => ({
+        email: "google@test.com",
+        name: "Google User",
+      }),
+    });
+    mockedUserModel.findOne.mockResolvedValue({
+      _id: "g1",
+      email: "google@test.com",
+      name: "Google User",
+      role: "user",
+      isActive: true,
+    });
+    mockedSignAccessToken.mockReturnValue("jwt-google");
+
+    const res = await request(app).post("/api/auth/google").send({ idToken: "google-id-token" });
+
+    expect(res.status).toBe(200);
+    expect(mockedGoogleClient.verifyIdToken).toHaveBeenCalled();
+    expect(res.body).toEqual({
+      token: "jwt-google",
+      user: {
+        id: "g1",
+        email: "google@test.com",
+        name: "Google User",
+        role: "user",
+      },
+    });
   });
 });
 

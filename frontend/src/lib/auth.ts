@@ -47,6 +47,11 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify(params),
     }),
+  google: (idToken: string) =>
+    apiFetch<{ token: string; user: AuthUser }>("/api/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ idToken }),
+    }),
   me: (token: string) => apiFetch<AuthUser>("/api/auth/me", { token }),
 };
 

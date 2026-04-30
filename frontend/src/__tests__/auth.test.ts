@@ -60,6 +60,29 @@ describe("frontend auth", () => {
     expect(res.user.role).toBe("technologist");
   });
 
+  it("google login calls backend and returns user", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      text: async () =>
+        JSON.stringify({
+          token: "jwt-google",
+          user: {
+            id: "g1",
+            email: "google@test.com",
+            name: "Google User",
+            role: "user",
+          },
+        }),
+    });
+
+    const res = await authApi.google("google-id-token");
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/auth/google"),
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(res.token).toBe("jwt-google");
+  });
+
   it("stores and clears auth state in localStorage", () => {
     storeAuth("jwt-token", {
       id: "u9",

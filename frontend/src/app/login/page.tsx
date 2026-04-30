@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authApi, storeAuth } from "@/lib/auth";
+import { getGoogleIdToken } from "@/lib/googleAuth";
+import type { ApiError } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,6 +14,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
 
   async function submit(e: React.FormEvent) {
@@ -22,10 +25,40 @@ export default function LoginPage() {
       const { token, user } = await authApi.login(email, password);
       storeAuth(token, user);
       router.replace("/home");
-    } catch (err: unknown) {
+    } catch {
       setError("И-мэйл эсвэл нууц үг буруу байна");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleGoogleLogin() {
+    setError("");
+    setGoogleLoading(true);
+    try {
+      const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+      const idToken = await getGoogleIdToken(clientId);
+      const { token, user } = await authApi.google(idToken);
+      storeAuth(token, user);
+      router.replace("/home");
+    } catch (err: unknown) {
+      const apiErr = err as ApiError;
+      const backendCode =
+        typeof apiErr?.data === "object" && apiErr?.data
+          ? (apiErr.data as { error?: string }).error
+          : undefined;
+
+      if (backendCode === "MISSING_GOOGLE_CLIENT_ID") {
+        setError("Backend дээр GOOGLE_CLIENT_ID тохируулаагүй байна");
+      } else if (backendCode === "INVALID_GOOGLE_TOKEN") {
+        setError("Google token хүчингүй байна. OAuth тохиргоогоо шалгана уу");
+      } else if (err instanceof Error && err.message) {
+        setError(err.message);
+      } else {
+        setError("Google-ээр нэвтрэх боломжгүй байна");
+      }
+    } finally {
+      setGoogleLoading(false);
     }
   }
 
@@ -146,6 +179,16 @@ export default function LoginPage() {
           <span className="text-xs text-chimge-ink-3">эсвэл</span>
           <div className="flex-1 h-px bg-chimge-line" />
         </div>
+
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          disabled={googleLoading}
+          className="w-full py-3.5 rounded-xl border border-chimge-line bg-chimge-white text-chimge-ink font-semibold text-sm
+                     hover:bg-chimge-bg transition-colors disabled:opacity-60"
+        >
+          {googleLoading ? "Google нэвтрэлт..." : "Google-ээр нэвтрэх"}
+        </button>
 
         <p className="text-center text-sm text-chimge-ink-2">
           Бүртгэл байхгүй?{" "}
