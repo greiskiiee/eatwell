@@ -6,7 +6,7 @@
     "dev": "ts-node-dev --respawn src/index.ts",
     "build": "tsc",
     "lint": "eslint src",
-    "test": "jest --passWithNoTests",
+    "test": "jest --config backend/jest.config.ts",
     "test:coverage": "jest --coverage"
   },
   "author": "",

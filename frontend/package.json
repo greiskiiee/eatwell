@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "jest --passWithNoTests"
+    "test": "jest --config frontend/jest.config.js"
   },
   "dependencies": {
     "@zxing/browser": "^0.2.0",
