@@ -1,7 +1,7 @@
 import express from "express";
 import request from "supertest";
 import * as bcrypt from "bcryptjs";
-import { authRouter, googleClient } from "../routes/auth";
+import { authRouter } from "../routes/auth";
 import { UserModel } from "../models/User";
 import { TechnologistProfileModel } from "../models/TechnologistProfile";
 import { signAccessToken } from "../lib/auth";
