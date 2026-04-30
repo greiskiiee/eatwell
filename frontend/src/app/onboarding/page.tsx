@@ -19,9 +19,8 @@ export default function OnboardingPage() {
   async function finish() {
     setLoading(true);
     try {
-      // Save allergens to backend
       const token = localStorage.getItem("chimge_token");
-      await fetch(
+      const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000"}/api/auth/allergens`,
         {
           method: "PATCH",
@@ -32,9 +31,11 @@ export default function OnboardingPage() {
           body: JSON.stringify({ allergens: selected }),
         },
       );
+      if (!res.ok) throw new Error(await res.text());
       router.replace("/home");
-    } catch {
-      router.replace("/home");
+    } catch (err) {
+      console.error("Failed to save allergens:", err);
+      router.replace("/home"); // still continue, allergens aren't critical
     } finally {
       setLoading(false);
     }

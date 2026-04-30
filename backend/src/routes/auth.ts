@@ -161,3 +161,27 @@ authRouter.get("/me", requireAuth, async (req: AuthenticatedRequest, res) => {
   if (!user) return res.status(404).json({ error: "NOT_FOUND" });
   return res.json(user);
 });
+
+authRouter.patch(
+  "/allergens",
+  requireAuth,
+  async (req: AuthenticatedRequest, res) => {
+    const { allergens } = req.body ?? {};
+
+    if (!Array.isArray(allergens)) {
+      return res
+        .status(400)
+        .json({ error: "VALIDATION_ERROR", field: "allergens" });
+    }
+
+    const user = await UserModel.findByIdAndUpdate(
+      req.auth!.userId,
+      { allergens },
+      { new: true, runValidators: true },
+    ).select("-passwordHash");
+
+    if (!user) return res.status(404).json({ error: "NOT_FOUND" });
+
+    return res.json(user);
+  },
+);
