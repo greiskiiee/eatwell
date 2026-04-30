@@ -1,7 +1,7 @@
 "use client";
 
 import { AuthUser, getStoredUser } from "@/lib/auth";
-import { ALLERGENS, NAV_ITEMS } from "@/lib/constants";
+import { NAV_ITEMS } from "@/lib/constants";
 import { Menu, Settings, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -63,12 +63,12 @@ export const Sidebar = () => {
             Миний харшил
           </p>
           <div className="flex flex-wrap gap-1.5 mb-2.5">
-            {ALLERGENS.map((a) => (
+            {user?.allergens?.map((a, id) => (
               <span
-                key={a.id}
+                key={id}
                 className="text-[11px] px-2.5 py-0.75 rounded-full bg-[#FBF0E6] text-[#B85E1A] font-medium"
               >
-                {a.label}
+                {a}
               </span>
             ))}
           </div>

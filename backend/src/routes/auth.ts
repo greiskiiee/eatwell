@@ -93,6 +93,7 @@ authRouter.post("/login", async (req, res) => {
       email: user.email,
       name: user.name,
       role: user.role,
+      allergens: user.allergens,
     },
   });
 });
@@ -150,6 +151,7 @@ authRouter.post("/google", async (req, res) => {
       email: user.email,
       name: user.name,
       role: user.role,
+      allergens: user.allergens,
     },
   });
 });

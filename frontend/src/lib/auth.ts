@@ -5,6 +5,7 @@ export type AuthUser = {
   email: string;
   name: string;
   role: "user" | "technologist" | "admin";
+  allergens?: string[];
 };
 
 export const AUTH_TOKEN_KEY = "chimge_token";
@@ -42,7 +43,12 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
-  signup: (params: { name: string; email: string; password: string; role?: AuthUser["role"] }) =>
+  signup: (params: {
+    name: string;
+    email: string;
+    password: string;
+    role?: AuthUser["role"];
+  }) =>
     apiFetch<{ token: string; user: AuthUser }>("/api/auth/signup", {
       method: "POST",
       body: JSON.stringify(params),
@@ -54,4 +60,3 @@ export const authApi = {
     }),
   me: (token: string) => apiFetch<AuthUser>("/api/auth/me", { token }),
 };
-
