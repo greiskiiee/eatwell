@@ -6,7 +6,7 @@ import { ArrowRight, ScanLine, Star, Users, BookOpen } from "lucide-react";
 
 const STATS = [
   { icon: BookOpen, value: "500+", label: "Баталгаажсан жор" },
-  { icon: Users, value: "3 роль", label: "Хэрэглэгч, Технологич, Админ" },
+  // { icon: Users, value: "3 роль", label: "Хэрэглэгч, Технологич, Админ" },
   { icon: Star, value: "Premium", label: "Онцгой жорын систем" },
 ];
 

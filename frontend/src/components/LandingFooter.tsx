@@ -42,7 +42,7 @@ export function LandingFooter() {
           ))}
         </div>
         <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row justify-between gap-2 text-[12px]">
-          <span>© 2026 EatWell+ · Дипломын ажил · МХТДС</span>
+          <span>© 2026 EatWell+ · Дипломын ажил · МХТС</span>
           <span>🇲🇳 Монгол Улс</span>
         </div>
       </div>
