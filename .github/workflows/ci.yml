@@ -31,7 +31,7 @@ jobs:
 
       - name: Run Tests
         working-directory: ./frontend
-        run: npm test --config jest.config.js
+        run: npm test
 
   backend:
     name: Backend CI
@@ -75,4 +75,4 @@ jobs:
 
       - name: Run Tests
         working-directory: ./backend
-        run: npm test --config jest.config.ts
+        run: npm test
