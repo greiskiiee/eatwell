@@ -1,17 +1,17 @@
 "use client";
 
-import { AuthUser, getStoredUser } from "@/lib/auth";
+import { useUser } from "@/context/UserContext";
 import { NAV_ITEMS } from "@/lib/constants";
 import { Menu, Settings, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export const Sidebar = () => {
-  const [user] = useState<AuthUser | null>(() => {
-    if (typeof window === "undefined") return null;
-    return getStoredUser();
-  });
+interface SidebarProps {
+  allergens?: string[];
+}
+export const Sidebar = ({ allergens }: SidebarProps) => {
+  const user = useUser();
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
@@ -63,14 +63,20 @@ export const Sidebar = () => {
             Миний харшил
           </p>
           <div className="flex flex-wrap gap-1.5 mb-2.5">
-            {user?.allergens?.map((a, id) => (
-              <span
-                key={id}
-                className="text-[11px] px-2.5 py-0.75 rounded-full bg-[#FBF0E6] text-[#B85E1A] font-medium"
-              >
-                {a}
+            {allergens ? (
+              allergens.map((a, id) => (
+                <span
+                  key={id}
+                  className="text-[11px] px-2.5 py-0.75 rounded-full bg-[#FBF0E6] text-[#B85E1A] font-medium"
+                >
+                  {a}
+                </span>
+              ))
+            ) : (
+              <span className="text-[11px] px-2.5 py-0.75 rounded-full bg-[#FBF0E6] text-[#B85E1A] font-medium">
+                Харшилгүй
               </span>
-            ))}
+            )}
           </div>
           <button className="text-[11.5px] text-[#B84230] font-medium hover:underline">
             Засах

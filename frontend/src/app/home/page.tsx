@@ -37,10 +37,12 @@ function MealCard({
                  transition-shadow flex flex-col"
     >
       <div className="relative h-40 overflow-hidden bg-[#EFE8DA]">
-        <img
+        <Image
           src={meal.strMealThumb}
           alt={meal.strMeal}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          width={300}
+          height={160}
         />
         <button
           onClick={(e) => {
@@ -100,10 +102,12 @@ function FeaturedMeal({
       href={`/recipes/${meal.idMeal}`}
       className="relative overflow-hidden rounded-2xl flex flex-col justify-end h-[300px] group"
     >
-      <img
+      <Image
         src={meal.strMealThumb}
         alt={meal.strMeal}
         className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        width={300}
+        height={300}
       />
       <div
         className="absolute inset-0"
@@ -181,10 +185,13 @@ export default function HomePage() {
   const [categories, setCategories] = useState<string[]>(["All"]);
   const [loading, setLoading] = useState(true);
 
-  const [user] = useState<AuthUser | null>(() => {
-    if (typeof window === "undefined") return null;
-    return getStoredUser();
-  });
+  // home/page.tsx
+  const [user, setUser] = useState<AuthUser | null>(null); // null on both server and client ✓
+
+  useEffect(() => {
+    setUser(getStoredUser()); // runs only after hydration
+  }, []);
+
   const isTechnologist = user?.role === "technologist";
 
   // Load categories once
@@ -241,7 +248,7 @@ export default function HomePage() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#EFE8DA]">
-      <Sidebar />
+      <Sidebar allergens={user?.allergens} />
 
       <div className="flex-1 overflow-y-auto min-w-0">
         <HomeHeader
