@@ -21,7 +21,11 @@ import { ingredientsRouter } from "./routes/ingredients";
 
 const app = express();
 
-const allowedOrigins = ["http://localhost:3000", process.env.CORS_ORIGIN];
+const allowedOrigins = [
+  "http://localhost:3000",
+  process.env.CORS_ORIGIN,
+  process.env.FRONTEND_URL,
+].filter((o): o is string => Boolean(o));
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -54,11 +58,16 @@ app.use("/api/ingredients", ingredientsRouter);
 app.use(notFound);
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
+const PORT = Number(process.env.PORT) || 5000;
+const HOST = process.env.HOST || "0.0.0.0";
 
 async function main() {
+  console.log(`[boot] NODE_ENV=${process.env.NODE_ENV ?? "development"}`);
   await connectToDatabase();
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  console.log("[boot] MongoDB connected");
+  app.listen(PORT, HOST, () => {
+    console.log(`[boot] Server listening on ${HOST}:${PORT}`);
+  });
 }
 
 main().catch((err) => {

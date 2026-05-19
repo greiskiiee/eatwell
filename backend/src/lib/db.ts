@@ -8,6 +8,8 @@ function requireEnv(name: string): string {
 
 export async function connectToDatabase(): Promise<void> {
   const uri = requireEnv("MONGODB_URI");
-  await mongoose.connect(uri);
+  await mongoose.connect(uri, {
+    serverSelectionTimeoutMS: 15_000,
+  });
 }
 

@@ -1,0 +1,13 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# In the Render dashboard, set the service Root Directory to "backend" if not using this file.
+
+services:
+  - type: web
+    name: eatwell-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
