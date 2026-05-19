@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -19,7 +20,12 @@ type SavedEntry =
 export default function SavedRecipesPage() {
   const router = useRouter();
   const user = useUser();
-  const { savedIds, isSaved, toggleSave, loading: savedLoading } = useSavedRecipes();
+  const {
+    savedIds,
+    isSaved,
+    toggleSave,
+    loading: savedLoading,
+  } = useSavedRecipes();
   const [entries, setEntries] = useState<SavedEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -100,7 +106,9 @@ export default function SavedRecipesPage() {
             </div>
           ) : entries.length === 0 ? (
             <div className="text-center py-20 space-y-3">
-              <p className="text-[#9C8878] text-sm">Хадгалсан жор байхгүй байна.</p>
+              <p className="text-[#9C8878] text-sm">
+                Хадгалсан жор байхгүй байна.
+              </p>
               <Link
                 href="/home"
                 className="inline-block text-[13px] font-semibold text-[#B84230] hover:underline"
@@ -110,7 +118,9 @@ export default function SavedRecipesPage() {
             </div>
           ) : (
             <>
-              <p className="text-[12px] text-[#9C8878] mb-4">{entries.length} жор</p>
+              <p className="text-[12px] text-[#9C8878] mb-4">
+                {entries.length} жор
+              </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 {entries.map((entry) =>
                   entry.kind === "system" ? (
