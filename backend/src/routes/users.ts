@@ -23,9 +23,13 @@ usersRouter.patch("/:id", requireAuth, async (req: AuthenticatedRequest, res) =>
   if (!canManageUser(req.auth!, id)) return res.status(403).json({ error: "FORBIDDEN" });
 
   const update: Record<string, unknown> = {};
-  const { name, password, role, isActive } = req.body ?? {};
+  const { name, password, role, isActive, avatarUrl } = req.body ?? {};
 
   if (typeof name === "string") update.name = name;
+
+  if (typeof avatarUrl === "string") {
+    update.avatarUrl = avatarUrl.trim();
+  }
 
   if (typeof password === "string" && password.length > 0) {
     if (password.length < 8) {
@@ -57,7 +61,10 @@ usersRouter.patch("/:id", requireAuth, async (req: AuthenticatedRequest, res) =>
   if (req.auth!.role === "admin" && user.role === "technologist") {
     await TechnologistProfileModel.updateOne(
       { userId: user._id },
-      { $setOnInsert: { userId: user._id, displayName: user.name } },
+      {
+        $setOnInsert: { userId: user._id, displayName: user.name },
+        $set: { approvalStatus: "approved" },
+      },
       { upsert: true },
     );
   }

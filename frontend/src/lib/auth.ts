@@ -6,6 +6,7 @@ export type AuthUser = {
   name: string;
   role: "user" | "technologist" | "admin";
   allergens?: string[];
+  avatarUrl?: string;
 };
 
 export const AUTH_TOKEN_KEY = "chimge_token";
@@ -27,14 +28,22 @@ export function getStoredUser(): AuthUser | null {
   }
 }
 
+/** Prefer `useAuth().setAuth` in React components so context stays in sync. */
 export function storeAuth(token: string, user: AuthUser) {
   localStorage.setItem(AUTH_TOKEN_KEY, token);
   localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("chimge-auth-change"));
+  }
 }
 
+/** Prefer `useAuth().logout` in React components so context stays in sync. */
 export function clearAuth() {
   localStorage.removeItem(AUTH_TOKEN_KEY);
   localStorage.removeItem(AUTH_USER_KEY);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("chimge-auth-change"));
+  }
 }
 
 export const authApi = {
@@ -59,4 +68,22 @@ export const authApi = {
       body: JSON.stringify({ idToken }),
     }),
   me: (token: string) => apiFetch<AuthUser>("/api/auth/me", { token }),
+
+  forgotPassword: (email: string) =>
+    apiFetch<{ message: string }>("/api/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+
+  verifyResetOtp: (email: string, otp: string) =>
+    apiFetch<{ resetToken: string }>("/api/auth/verify-reset-otp", {
+      method: "POST",
+      body: JSON.stringify({ email, otp }),
+    }),
+
+  resetPassword: (resetToken: string, password: string) =>
+    apiFetch<{ message: string }>("/api/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ resetToken, password }),
+    }),
 };

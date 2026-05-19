@@ -18,6 +18,19 @@ export interface MealDBCategory {
   strCategoryDescription: string;
 }
 
+export interface MealDBIngredient {
+  idIngredient: string;
+  strIngredient: string;
+  strDescription?: string | null;
+  strThumb?: string | null;
+}
+
+export interface MealDBFilterMeal {
+  idMeal: string;
+  strMeal: string;
+  strMealThumb: string;
+}
+
 const BASE = "https://www.themealdb.com/api/json/v1/1";
 
 export async function searchMeals(query: string): Promise<MealDBRecipe[]> {
@@ -63,6 +76,57 @@ export async function getCategories(): Promise<MealDBCategory[]> {
   const res = await fetch(`${BASE}/categories.php`);
   const data = await res.json();
   return data.categories ?? [];
+}
+
+export async function getAllIngredients(): Promise<MealDBIngredient[]> {
+  const res = await fetch(`${BASE}/list.php?i=list`);
+  const data = await res.json();
+  return data.meals ?? [];
+}
+
+export async function filterMealsByIngredient(
+  ingredient: string,
+): Promise<MealDBFilterMeal[]> {
+  const res = await fetch(
+    `${BASE}/filter.php?i=${encodeURIComponent(ingredient)}`,
+  );
+  const data = await res.json();
+  return data.meals ?? [];
+}
+
+export async function getMealsByIngredient(
+  ingredient: string,
+  limit = 12,
+): Promise<MealDBRecipe[]> {
+  const partial = await filterMealsByIngredient(ingredient);
+  const details = await Promise.all(
+    partial.slice(0, limit).map((m) => getMealById(m.idMeal)),
+  );
+  return details.filter(Boolean) as MealDBRecipe[];
+}
+
+/** Meals that contain every selected ingredient */
+export async function getMealsByIngredients(
+  ingredients: string[],
+  limit = 12,
+): Promise<MealDBRecipe[]> {
+  if (ingredients.length === 0) return [];
+
+  const idSets = await Promise.all(
+    ingredients.map(async (ing) => {
+      const meals = await filterMealsByIngredient(ing);
+      return new Set(meals.map((m) => m.idMeal));
+    }),
+  );
+
+  const commonIds = [...idSets[0]!].filter((id) =>
+    idSets.every((set) => set.has(id)),
+  );
+
+  const details = await Promise.all(
+    commonIds.slice(0, limit).map((id) => getMealById(id)),
+  );
+  return details.filter(Boolean) as MealDBRecipe[];
 }
 
 // Extract ingredients list from a MealDB recipe

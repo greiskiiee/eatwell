@@ -7,6 +7,19 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "www.themealdb.com",
       },
+      {
+        protocol: "https",
+        hostname: "img.youtube.com",
+      },
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "5000",
+      },
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+      },
     ],
   },
 };

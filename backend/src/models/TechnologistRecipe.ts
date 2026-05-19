@@ -27,6 +27,7 @@ const TechnologistRecipeSchema = new mongoose.Schema(
     createdBy: { type: String, default: "food-technologist" },
     videoUrl: { type: String, default: "" },
     imageUrl: { type: String, default: "" },
+    imageUrls: { type: [String], default: [] },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
   },

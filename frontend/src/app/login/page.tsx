@@ -3,12 +3,16 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { authApi, storeAuth } from "@/lib/auth";
+import { authApi } from "@/lib/auth";
+import { getPostLoginPath } from "@/lib/authRedirects";
+import { useAuth } from "@/context/UserContext";
+import { technologistAuthApi } from "@/lib/technologistAuth";
 import { getGoogleIdToken } from "@/lib/googleAuth";
 import type { ApiError } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { setAuth } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,11 +26,50 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
+      // First try the regular auth endpoint
       const { token, user } = await authApi.login(email, password);
-      storeAuth(token, user);
-      router.replace("/home");
-    } catch {
-      setError("И-мэйл эсвэл нууц үг буруу байна");
+      setAuth(token, user);
+      router.replace(getPostLoginPath(user.role));
+    } catch (err: unknown) {
+      const apiErr = err as ApiError;
+      const data = apiErr?.data as
+        | { error?: string; rejectionReason?: string }
+        | undefined;
+      const code = data?.error;
+
+      if (code === "USE_TECHNOLOGIST_LOGIN") {
+        // Transparently retry via the technologist endpoint
+        try {
+          const { token, user } = await technologistAuthApi.login(
+            email,
+            password,
+          );
+          setAuth(token, user);
+          router.replace(getPostLoginPath(user.role));
+        } catch (techErr: unknown) {
+          const techApiErr = techErr as ApiError;
+          const techData = techApiErr?.data as
+            | { error?: string; rejectionReason?: string }
+            | undefined;
+          const techCode = techData?.error;
+
+          if (techCode === "APPROVAL_PENDING") {
+            setError(
+              "Таны бүртгэл баталгаажих хүлээлтэд байна. Админ зөвшөөрсний дараа нэвтэрнэ үү.",
+            );
+          } else if (techCode === "APPROVAL_REJECTED") {
+            setError(
+              techData?.rejectionReason
+                ? `Бүртгэл татгалзагдсан: ${techData.rejectionReason}`
+                : "Бүртгэл татгалзагдсан. Дахин бүртгүүлэх эсвэл админтай холбогдоно уу.",
+            );
+          } else {
+            setError("И-мэйл эсвэл нууц үг буруу байна");
+          }
+        }
+      } else {
+        setError("И-мэйл эсвэл нууц үг буруу байна");
+      }
     } finally {
       setLoading(false);
     }
@@ -39,8 +82,8 @@ export default function LoginPage() {
       const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
       const idToken = await getGoogleIdToken(clientId);
       const { token, user } = await authApi.google(idToken);
-      storeAuth(token, user);
-      router.replace("/home");
+      setAuth(token, user);
+      router.replace(getPostLoginPath(user.role));
     } catch (err: unknown) {
       const apiErr = err as ApiError;
       const backendCode =
@@ -65,7 +108,10 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12">
       {/* Logo */}
-      <div onClick={() => router.replace("/")} className="mb-10 text-center">
+      <div
+        onClick={() => router.replace("/")}
+        className="mb-10 text-center cursor-pointer"
+      >
         <h1 className="font-display text-4xl font-semibold text-chimge-primary mb-1">
           Eatwell+
         </h1>
@@ -86,7 +132,6 @@ export default function LoginPage() {
         )}
 
         <form onSubmit={submit} className="space-y-4">
-          {/* Email */}
           <div>
             <label className="block text-xs font-semibold text-chimge-ink-2 mb-1.5 uppercase tracking-wider">
               И-мэйл
@@ -102,7 +147,6 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* Password */}
           <div>
             <label className="block text-xs font-semibold text-chimge-ink-2 mb-1.5 uppercase tracking-wider">
               Нууц үг
@@ -122,37 +166,31 @@ export default function LoginPage() {
                 onClick={() => setShowPw((v) => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-chimge-ink-3 hover:text-chimge-ink-2"
               >
-                {showPw ? (
-                  <svg
-                    width="18"
-                    height="18"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                    <line x1="1" y1="1" x2="23" y2="23" />
-                  </svg>
-                ) : (
-                  <svg
-                    width="18"
-                    height="18"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                )}
+                <svg
+                  width="18"
+                  height="18"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  {showPw ? (
+                    <>
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </>
+                  ) : (
+                    <>
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </>
+                  )}
+                </svg>
               </button>
             </div>
           </div>
 
-          {/* Forgot */}
           <div className="text-right">
             <Link
               href="/reset-password"
@@ -162,14 +200,13 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={loading}
             className="w-full py-3.5 rounded-xl bg-chimge-primary text-chimge-white font-semibold text-sm
                        hover:bg-chimge-primary-hover transition-colors disabled:opacity-60"
           >
-            {loading ? "Нэвтрэж байна..." : "Нэвтрэх"}
+            {loading ? "Түр хүлээнэ үү..." : "Нэвтрэх"}
           </button>
         </form>
 
@@ -187,10 +224,10 @@ export default function LoginPage() {
           className="w-full py-3.5 rounded-xl border border-chimge-line bg-chimge-white text-chimge-ink font-semibold text-sm
                      hover:bg-chimge-bg transition-colors disabled:opacity-60"
         >
-          {googleLoading ? "Google нэвтрэлт..." : "Google-ээр нэвтрэх"}
+          {googleLoading ? "Түр хүлээнэ үү..." : "Google-ээр нэвтрэх"}
         </button>
 
-        <p className="text-center text-sm text-chimge-ink-2">
+        <p className="text-center text-sm text-chimge-ink-2 mt-4">
           Бүртгэл байхгүй?{" "}
           <Link
             href="/signup"

@@ -13,6 +13,7 @@ const UserSchema = new mongoose.Schema(
     },
     passwordHash: { type: String, required: true },
     name: { type: String, default: "" },
+    avatarUrl: { type: String, default: "" },
     role: {
       type: String,
       enum: ["user", "technologist", "admin"],

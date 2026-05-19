@@ -83,6 +83,38 @@ describe("frontend auth", () => {
     expect(res.token).toBe("jwt-google");
   });
 
+  it("forgotPassword calls backend (happy path)", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ message: "sent" }),
+    });
+
+    const res = await authApi.forgotPassword("user@test.com");
+    expect(res.message).toBe("sent");
+  });
+
+  it("forgotPassword surfaces API errors (bad case)", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 500,
+      text: async () => JSON.stringify({ error: "SERVER_ERROR" }),
+    });
+
+    await expect(authApi.forgotPassword("user@test.com")).rejects.toThrow(
+      "API request failed",
+    );
+  });
+
+  it("verifyResetOtp returns reset token (happy path)", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ resetToken: "reset-jwt" }),
+    });
+
+    const res = await authApi.verifyResetOtp("user@test.com", "1234");
+    expect(res.resetToken).toBe("reset-jwt");
+  });
+
   it("stores and clears auth state in localStorage", () => {
     storeAuth("jwt-token", {
       id: "u9",

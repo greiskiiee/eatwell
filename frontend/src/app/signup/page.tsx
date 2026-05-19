@@ -3,12 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { authApi, storeAuth } from "@/lib/auth";
+import { authApi } from "@/lib/auth";
+import { useAuth } from "@/context/UserContext";
 import { getGoogleIdToken } from "@/lib/googleAuth";
 import type { ApiError } from "@/lib/api";
+import { FlaskConical } from "lucide-react";
 
 export default function SignupPage() {
   const router = useRouter();
+  const { setAuth } = useAuth();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -33,7 +36,7 @@ export default function SignupPage() {
     setLoading(true);
     try {
       const { token, user } = await authApi.signup({ name, email, password });
-      storeAuth(token, user);
+      setAuth(token, user);
       router.replace("/onboarding");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Бүртгэл үүсгэх боломжгүй");
@@ -49,7 +52,7 @@ export default function SignupPage() {
       const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
       const idToken = await getGoogleIdToken(clientId);
       const { token, user } = await authApi.google(idToken);
-      storeAuth(token, user);
+      setAuth(token, user);
       router.replace("/onboarding");
     } catch (err: unknown) {
       const apiErr = err as ApiError;
@@ -91,7 +94,10 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12">
-      <div onClick={() => router.replace("/")} className="mb-10 text-center">
+      <div
+        onClick={() => router.replace("/")}
+        className="mb-10 text-center cursor-pointer"
+      >
         <h1 className="font-display text-4xl font-semibold text-chimge-primary mb-1">
           Eatwell+
         </h1>
@@ -181,7 +187,6 @@ export default function SignupPage() {
                 </svg>
               </button>
             </div>
-            {/* Strength bar */}
             {password.length > 0 && (
               <div className="mt-2 flex items-center gap-2">
                 <div className="flex-1 h-1.5 bg-chimge-line rounded-full overflow-hidden">
@@ -218,12 +223,39 @@ export default function SignupPage() {
             className="w-full py-3.5 rounded-xl bg-chimge-primary text-chimge-white font-semibold text-sm
                        hover:bg-chimge-primary-hover transition-colors disabled:opacity-60 mt-2"
           >
-            {loading ? "Бүртгэж байна..." : "Бүртгүүлэх"}
+            {loading ? "Түр хүлээнэ үү..." : "Бүртгүүлэх"}
           </button>
         </form>
 
+        {/* Divider */}
+        <div className="my-6 flex items-center gap-3">
+          <div className="flex-1 h-px bg-chimge-line" />
+          <span className="text-xs text-chimge-ink-3">эсвэл</span>
+          <div className="flex-1 h-px bg-chimge-line" />
+        </div>
+
+        <button
+          type="button"
+          onClick={handleGoogleSignup}
+          disabled={googleLoading}
+          className="w-full py-3.5 rounded-xl border border-chimge-line bg-chimge-white text-chimge-ink font-semibold text-sm
+                     hover:bg-chimge-bg transition-colors disabled:opacity-60"
+        >
+          {googleLoading ? "Түр хүлээнэ үү..." : "Google-ээр бүртгүүлэх"}
+        </button>
+
+        {/* Technologist signup button */}
+        <Link
+          href="/technologist/signup"
+          className="mt-3 w-full py-3.5 rounded-xl border border-[#2D5A4A]/40 bg-[#2D5A4A]/5 text-[#2D5A4A] font-semibold text-sm
+                     hover:bg-[#2D5A4A]/10 transition-colors flex items-center justify-center gap-2"
+        >
+          {/* <FlaskConical size={16} /> */}
+          Технологич бүртгүүлэх
+        </Link>
+
         <p className="text-center text-sm text-chimge-ink-2 mt-6">
-          Аль хэдийн бүртгэлтэй?{" "}
+          Бүртгэлтэй бол{" "}
           <Link
             href="/login"
             className="text-chimge-primary font-semibold hover:underline"
@@ -231,15 +263,6 @@ export default function SignupPage() {
             Нэвтрэх
           </Link>
         </p>
-        <button
-          type="button"
-          onClick={handleGoogleSignup}
-          disabled={googleLoading}
-          className="w-full mt-4 py-3.5 rounded-xl border border-chimge-line bg-chimge-white text-chimge-ink font-semibold text-sm
-                     hover:bg-chimge-bg transition-colors disabled:opacity-60"
-        >
-          {googleLoading ? "Google бүртгэл..." : "Google-ээр бүртгүүлэх"}
-        </button>
       </div>
     </div>
   );

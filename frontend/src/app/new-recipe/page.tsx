@@ -1,7 +1,8 @@
 "use client";
-import { ImageIcon, Upload, Video } from "lucide-react";
-import { useState } from "react";
+import { ImageIcon, Video } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@/context/UserContext";
 import Link from "next/link";
 import {
   ChevronLeft,
@@ -18,12 +19,12 @@ import {
   Save,
   Send,
 } from "lucide-react";
-import {
-  IngredientEntry,
-  IngredientPicker,
-} from "@/components/IngredientPicker";
+import { IngredientPicker } from "@/components/IngredientPicker";
+import type { IngredientEntry } from "@/lib/ingredients";
+import { formatIngredientEntry } from "@/lib/ingredients";
 import { calcNutrition } from "@/lib/usda";
-import Image from "next/image";
+import { MultiImageUpload } from "@/components/MultiImageUpload";
+import { uploadApi } from "@/lib/upload";
 
 function Field({
   label,
@@ -133,7 +134,18 @@ function Section({
 
 export default function NewRecipePage() {
   const router = useRouter();
+  const user = useUser();
   const [saving, setSaving] = useState<"draft" | "publish" | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      router.replace("/technologist/login");
+      return;
+    }
+    if (user.role !== "technologist" && user.role !== "admin") {
+      router.replace("/home");
+    }
+  }, [user, router]);
   const [error, setError] = useState("");
 
   const [title, setTitle] = useState("");
@@ -147,7 +159,7 @@ export default function NewRecipePage() {
   const [steps, setSteps] = useState<string[]>([""]);
   const [isPremium, setIsPremium] = useState(false);
   const [price, setPrice] = useState<number | "">(0);
-  const [imageUrl, setImageUrl] = useState("");
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState("");
 
   // ✅ Auto-calculated — no manual nutrition state
@@ -183,16 +195,15 @@ export default function NewRecipePage() {
             isPremium,
             price: isPremium ? price : 0,
 
-            ingredients: ingredients.map(
-              (e) => `${e.grams}г ${e.food.description}`,
-            ),
+            ingredients: ingredients.map(formatIngredientEntry),
             nutrition: {
               calories: Math.round(nutrition.calories),
               proteinG: +nutrition.proteinG.toFixed(1),
               carbsG: +nutrition.carbsG.toFixed(1),
               fatG: +nutrition.fatG.toFixed(1),
             },
-            imageUrl: imageUrl.trim() || undefined,
+            imageUrls,
+            imageUrl: imageUrls[0] || undefined,
             videoUrl: videoUrl.trim() || undefined,
           }),
         },
@@ -215,41 +226,47 @@ export default function NewRecipePage() {
     <div className="min-h-screen bg-[#EFE8DA]">
       <header
         className="sticky top-0 z-30 bg-[#EFE8DA]/92 backdrop-blur-md
-                   border-b border-[#D6C9B4]/70 px-4 md:px-8 py-3
-                   flex items-center gap-4"
+                   border-b border-[#D6C9B4]/70 px-3 sm:px-4 md:px-8 py-3
+                   flex flex-wrap items-center gap-2 sm:gap-4"
       >
         <Link
           href="/home"
           className="flex items-center gap-1.5 text-[13px] font-semibold text-[#9C8878]
-                     hover:text-[#5C4A3A] transition-colors"
+                     hover:text-[#5C4A3A] transition-colors shrink-0"
         >
           <ChevronLeft size={16} /> Буцах
         </Link>
-        <h1 className="font-display text-[17px] font-semibold text-[#221C16]">
+        <h1 className="font-display text-[16px] sm:text-[17px] font-semibold text-[#221C16] min-w-0">
           Шинэ жор
         </h1>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="w-full sm:w-auto sm:ml-auto flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={() => submit(true)}
             disabled={!!saving}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[#D6C9B4]
+            aria-label={saving === "draft" ? "Хадгалж байна" : "Драфт хадгалах"}
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl border border-[#D6C9B4]
                        bg-white text-[#5C4A3A] text-[13px] font-semibold
                        hover:border-[#9C8878] transition-colors disabled:opacity-50"
           >
             <Save size={14} />
-            {saving === "draft" ? "Хадгалж байна..." : "Драфт"}
+            <span className="hidden sm:inline">
+              {saving === "draft" ? "Хадгалж байна..." : "Драфт"}
+            </span>
           </button>
           <button
             type="button"
             onClick={() => submit(false)}
             disabled={!!saving}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#B84230] text-white
+            aria-label={saving === "publish" ? "Нийтлэж байна" : "Нийтлэх"}
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-[#B84230] text-white
                        text-[13px] font-semibold hover:bg-[#9C3426] transition-colors
                        disabled:opacity-50 shadow-sm"
           >
             <Send size={14} />
-            {saving === "publish" ? "Нийтлэж байна..." : "Нийтлэх"}
+            <span className="hidden sm:inline">
+              {saving === "publish" ? "Нийтлэж байна..." : "Нийтлэх"}
+            </span>
           </button>
         </div>
       </header>
@@ -386,40 +403,15 @@ export default function NewRecipePage() {
 
         {/* Media */}
         <Section icon={ImageIcon} title="Медиа">
-          <Field label="Нүүр зургийн URL">
-            <input
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://example.com/image.jpg"
-              className={inputCls}
-            />
-          </Field>
-          {imageUrl && (
-            <div className="relative w-full h-48 rounded-xl overflow-hidden border border-[#D6C9B4]">
-              <Image
-                src={imageUrl}
-                alt="preview"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
-                }}
-              />
-            </div>
-          )}
-          <div
-            className="flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-dashed
-                          border-[#D6C9B4] bg-[#EFE8DA]/40 cursor-not-allowed opacity-60"
-          >
-            <Upload size={16} className="text-[#9C8878] shrink-0" />
-            <div>
-              <p className="text-[13px] font-semibold text-[#5C4A3A]">
-                Зураг оруулах
-              </p>
-              <p className="text-[11px] text-[#9C8878]">
-                Cloudinary тохиргооны дараа идэвхжинэ
-              </p>
-            </div>
-          </div>
+          <MultiImageUpload
+            values={imageUrls}
+            onChange={setImageUrls}
+            onUpload={async (file) => {
+              const { url } = await uploadApi.recipeImage(file);
+              return url;
+            }}
+            label="Жорын зургууд"
+          />
           <Field label="Видео URL (YouTube / заавал биш)">
             <div className="relative">
               <Video

@@ -9,8 +9,8 @@ interface Props {
 
 export function CategoryBar({ categories, active, onChange }: Props) {
   return (
-    <div className="flex items-center gap-3 flex-wrap">
-      <div className="flex gap-2 overflow-x-auto flex-1 scrollbar-none pb-0.5">
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 min-w-0">
+      <div className="flex gap-2 overflow-x-auto w-full min-w-0 scrollbar-none pb-0.5 -mx-0.5 px-0.5">
         {categories.map((c) => (
           <button
             key={c}

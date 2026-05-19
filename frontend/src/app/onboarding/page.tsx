@@ -2,103 +2,86 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ALLERGENS } from "@/lib/constants";
-import AllergenPill from "@/components/Allergenpill";
+import { useAuth } from "@/context/UserContext";
+import { getStoredToken } from "@/lib/auth";
+import { usersApi } from "@/lib/users";
+import { dedupeIngredientNames } from "@/lib/ingredientGroups";
+import { IngredientAllergenPicker } from "@/components/IngredientAllergenPicker";
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { setAuth } = useAuth();
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-
-  function toggle(id: string) {
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id],
-    );
-  }
 
   async function finish() {
     setLoading(true);
     try {
-      const token = localStorage.getItem("chimge_token");
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000"}/api/auth/allergens`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ allergens: selected }),
-        },
-      );
-      if (!res.ok) throw new Error(await res.text());
+      const allergens = dedupeIngredientNames(selected);
+      const updated = await usersApi.updateAllergens(allergens);
+      const token = getStoredToken();
+      if (token) setAuth(token, updated);
       router.replace("/home");
     } catch (err) {
       console.error("Failed to save allergens:", err);
-      router.replace("/home"); // still continue, allergens aren't critical
+      router.replace("/home");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen flex justify-center items-center px-6 py-12">
-      <div className="w-[60%] min-h-screen flex flex-col px-6 py-12">
-        {/* Header */}
-        <div className="mb-8 ">
-          <span className="font-display text-2xl font-semibold text-chimge-primary">
+    <div className="min-h-screen flex justify-center items-center px-6 py-12 bg-[#EFE8DA]">
+      <div className="w-full max-w-lg flex flex-col min-h-[80vh]">
+        <div className="mb-6">
+          <span className="font-display text-2xl font-semibold text-[#B84230]">
             Eatwell+
           </span>
           <div className="mt-6">
-            <h1 className="font-display text-2xl font-semibold text-chimge-ink mb-2">
+            <h1 className="font-display text-2xl font-semibold text-[#221C16] mb-2">
               Харшлын мэдээлэл
             </h1>
-            <p className="text-sm text-chimge-ink-2 leading-relaxed">
-              Таны харшилтай орцуудыг тэмдэглэснээр бид жор санал болгохдоо
-              анхааруулга үзүүлнэ. Хэзээ ч өөрчлөх боломжтой.
+            <p className="text-sm text-[#5C4A3A] leading-relaxed">
+              TheMealDB-ийн орцын жагсаалтаас харшилтайгаа сонгоно уу. Жор
+              санал болгохдоо эдгээр орцыг анхааруулна.
             </p>
           </div>
         </div>
 
-        {/* Allergen grid */}
         <div className="flex-1">
-          <p className="text-xs font-semibold text-chimge-ink-3 uppercase tracking-widest mb-4">
+          <p className="text-xs font-semibold text-[#9C8878] uppercase tracking-widest mb-3">
             Харшлын орцоо сонгоно уу
           </p>
-          <div className="flex flex-wrap gap-2.5">
-            {ALLERGENS.map((a) => (
-              <AllergenPill
-                key={a.id}
-                allergenId={a.id}
-                variant={selected.includes(a.id) ? "selected" : "unselected"}
-                onClick={() => toggle(a.id)}
-              />
-            ))}
-          </div>
+          <IngredientAllergenPicker
+            selected={selected}
+            onChange={setSelected}
+            maxHeight="max-h-[min(50vh,420px)]"
+          />
 
           {selected.length > 0 && (
-            <div className="mt-6 px-4 py-3 bg-chimge-warn-soft rounded-xl border border-chimge-warn/20">
-              <p className="text-xs text-chimge-warn font-medium">
-                ⚠ {selected.length} харшлын орц сонгогдлоо. Эдгээрийг агуулах
+            <div className="mt-4 px-4 py-3 bg-[#FBF0E6] rounded-xl border border-[#B85E1A]/20">
+              <p className="text-xs text-[#B85E1A] font-medium">
+                {selected.length} харшлын орц сонгогдлоо. Эдгээр орцыг агуулсан
                 жорт анхааруулга харуулна.
               </p>
             </div>
           )}
         </div>
 
-        {/* Actions */}
         <div className="mt-8 space-y-3">
           <button
+            type="button"
             onClick={finish}
             disabled={loading}
-            className="w-full py-3.5 rounded-xl bg-chimge-primary text-chimge-white font-semibold text-sm
-                     hover:bg-chimge-primary-hover transition-colors disabled:opacity-60"
+            className="w-full py-3.5 rounded-xl bg-[#B84230] text-white font-semibold text-sm
+                     hover:bg-[#9C3426] transition-colors disabled:opacity-60"
           >
             {loading ? "Хадгалж байна..." : "Үргэлжлүүлэх"}
           </button>
           <button
+            type="button"
             onClick={() => router.replace("/home")}
-            className="w-full py-3 text-sm text-chimge-ink-3 hover:text-chimge-ink-2 transition-colors"
+            className="w-full py-3 text-sm text-[#9C8878] hover:text-[#5C4A3A] transition-colors"
           >
             Дараа оруулна
           </button>

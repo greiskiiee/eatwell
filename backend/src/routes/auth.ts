@@ -1,16 +1,21 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { OAuth2Client } from "google-auth-library";
-import { UserModel, type UserRole } from "../models/User";
-import { TechnologistProfileModel } from "../models/TechnologistProfile";
-import { signAccessToken } from "../lib/auth";
+import { UserModel } from "../models/User";
+import { signAccessToken, signResetToken, verifyResetToken } from "../lib/auth";
+import {
+  clearPasswordResetOtp,
+  requestPasswordResetOtp,
+  verifyPasswordResetOtp,
+} from "../lib/passwordReset";
 import { requireAuth, type AuthenticatedRequest } from "../middleware/auth";
+import { toPublicUser } from "../lib/userResponse";
 
 export const authRouter = Router();
 export const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 authRouter.post("/signup", async (req, res) => {
-  const { email, password, name, role } = req.body ?? {};
+  const { email, password, name } = req.body ?? {};
 
   if (!email || typeof email !== "string") {
     return res.status(400).json({ error: "VALIDATION_ERROR", field: "email" });
@@ -29,10 +34,8 @@ authRouter.post("/signup", async (req, res) => {
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const userRole: UserRole =
-    role === "technologist" || role === "admin" || role === "user"
-      ? role
-      : "user";
+  // Regular signup is always "user" — technologists use /api/technologist-auth/signup
+  const userRole = "user" as const;
 
   try {
     const user = await UserModel.create({
@@ -42,22 +45,10 @@ authRouter.post("/signup", async (req, res) => {
       role: userRole,
     });
 
-    if (userRole === "technologist") {
-      await TechnologistProfileModel.create({
-        userId: user._id,
-        displayName: user.name,
-      });
-    }
-
     const token = signAccessToken({ sub: String(user._id), role: user.role });
     return res.status(201).json({
       token,
-      user: {
-        id: String(user._id),
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      },
+      user: toPublicUser(user),
     });
   } catch (e: unknown) {
     if (e instanceof Error && e.message.includes("duplicate key")) {
@@ -82,19 +73,20 @@ authRouter.post("/login", async (req, res) => {
   if (!user || !user.isActive)
     return res.status(401).json({ error: "INVALID_CREDENTIALS" });
 
+  if (user.role === "technologist") {
+    return res.status(403).json({
+      error: "USE_TECHNOLOGIST_LOGIN",
+      message: "Use /technologist/login for food technologist accounts",
+    });
+  }
+
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) return res.status(401).json({ error: "INVALID_CREDENTIALS" });
 
   const token = signAccessToken({ sub: String(user._id), role: user.role });
   return res.json({
     token,
-    user: {
-      id: String(user._id),
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      allergens: user.allergens,
-    },
+    user: toPublicUser(user),
   });
 });
 
@@ -146,14 +138,72 @@ authRouter.post("/google", async (req, res) => {
   const token = signAccessToken({ sub: String(user._id), role: user.role });
   return res.json({
     token,
-    user: {
-      id: String(user._id),
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      allergens: user.allergens,
-    },
+    user: toPublicUser(user),
   });
+});
+
+authRouter.post("/forgot-password", async (req, res) => {
+  const { email } = req.body ?? {};
+  if (!email || typeof email !== "string") {
+    return res.status(400).json({ error: "VALIDATION_ERROR", field: "email" });
+  }
+
+  await requestPasswordResetOtp(email);
+
+  return res.json({
+    message: "Хэрэв энэ и-мэйл бүртгэлтэй бол нууц үг сэргээх код илгээгдэнэ.",
+  });
+});
+
+authRouter.post("/verify-reset-otp", async (req, res) => {
+  const { email, otp } = req.body ?? {};
+  if (!email || typeof email !== "string") {
+    return res.status(400).json({ error: "VALIDATION_ERROR", field: "email" });
+  }
+  if (!otp || typeof otp !== "string" || !/^\d{4}$/.test(otp)) {
+    return res.status(400).json({ error: "VALIDATION_ERROR", field: "otp" });
+  }
+
+  const result = await verifyPasswordResetOtp(email, otp);
+  if (!result.ok) {
+    const status = result.error === "TOO_MANY_ATTEMPTS" ? 429 : 400;
+    return res.status(status).json({ error: result.error });
+  }
+
+  const resetToken = signResetToken(result.userId);
+  return res.json({ resetToken });
+});
+
+authRouter.post("/reset-password", async (req, res) => {
+  const { resetToken, password } = req.body ?? {};
+  if (!resetToken || typeof resetToken !== "string") {
+    return res
+      .status(400)
+      .json({ error: "VALIDATION_ERROR", field: "resetToken" });
+  }
+  if (!password || typeof password !== "string" || password.length < 8) {
+    return res
+      .status(400)
+      .json({ error: "VALIDATION_ERROR", field: "password" });
+  }
+
+  let userId: string;
+  try {
+    userId = verifyResetToken(resetToken);
+  } catch {
+    return res.status(400).json({ error: "INVALID_RESET_TOKEN" });
+  }
+
+  const user = await UserModel.findById(userId);
+  if (!user || !user.isActive) {
+    return res.status(400).json({ error: "INVALID_RESET_TOKEN" });
+  }
+
+  user.passwordHash = await bcrypt.hash(password, 10);
+  await user.save();
+  await clearPasswordResetOtp(user.email);
+
+  return res.json({ message: "Нууц үг амжилттай шинэчлэгдлээ." });
 });
 
 authRouter.get("/me", requireAuth, async (req: AuthenticatedRequest, res) => {

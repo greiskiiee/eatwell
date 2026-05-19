@@ -65,10 +65,13 @@ export interface Recipe {
 
 export interface Comment {
   _id: string;
-  recipe: string;
-  author: Pick<User, "_id" | "name" | "avatar">;
+  recipeId: string;
+  author: {
+    id: string;
+    name: string;
+    avatarUrl: string;
+  };
   body: string;
-  rating: number;
   createdAt: string;
 }
 

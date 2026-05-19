@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 import { UserProvider } from "@/context/UserContext";
+import { SavedRecipesProvider } from "@/context/SavedRecipesContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,7 +41,9 @@ export default function RootLayout({
         lang="en"
         className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} ${inter.variable} h-full antialiased`}
       >
-        <body>{children}</body>
+        <body>
+          <SavedRecipesProvider>{children}</SavedRecipesProvider>
+        </body>
       </html>
     </UserProvider>
   );
