@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import {
@@ -19,9 +20,15 @@ type SavedRecipesContextValue = {
   loading: boolean;
 };
 
-const SavedRecipesContext = createContext<SavedRecipesContextValue | null>(null);
+const SavedRecipesContext = createContext<SavedRecipesContextValue | null>(
+  null,
+);
 
-export function SavedRecipesProvider({ children }: { children: React.ReactNode }) {
+export function SavedRecipesProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const user = useUser();
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
