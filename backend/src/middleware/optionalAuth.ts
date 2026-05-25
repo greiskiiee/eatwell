@@ -1,4 +1,4 @@
-import type { NextFunction, Request, Response } from "express";
+import type { NextFunction, Response } from "express";
 import { verifyAccessToken } from "../lib/auth";
 import type { AuthenticatedRequest } from "./auth";
 
