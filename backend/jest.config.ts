@@ -1,7 +1,8 @@
 export default {
   preset: "ts-jest",
   testEnvironment: "node",
-  testMatch: ["**/__tests__/**/*.ts"],
+  testMatch: ["**/__tests__/**/*.test.ts"],
+  testPathIgnorePatterns: ["/node_modules/", "/integration/"],
   collectCoverageFrom: [
     "src/lib/ingredientGroup.ts",
     "src/lib/mealdbIngredients.ts",

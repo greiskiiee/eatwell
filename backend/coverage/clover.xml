@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1779223694069" clover="3.2.0">
-  <project timestamp="1779223694069" name="All files">
+<coverage generated="1779350058219" clover="3.2.0">
+  <project timestamp="1779350058219" name="All files">
     <metrics statements="143" coveredstatements="142" conditionals="94" coveredconditionals="87" methods="22" coveredmethods="21" elements="259" coveredelements="250" complexity="0" loc="143" ncloc="143" packages="4" files="7" classes="7"/>
     <package name="lib">
       <metrics statements="79" coveredstatements="79" conditionals="50" coveredconditionals="47" methods="9" coveredmethods="9"/>
@@ -100,17 +100,17 @@
       <metrics statements="15" coveredstatements="15" conditionals="10" coveredconditionals="10" methods="3" coveredmethods="3"/>
       <file name="auth.ts" path="C:\Users\Lenovo\OneDrive\Documents\eatwell\backend\src\middleware\auth.ts">
         <metrics statements="15" coveredstatements="15" conditionals="10" coveredconditionals="10" methods="3" coveredmethods="3"/>
-        <line num="2" count="3" type="stmt"/>
-        <line num="8" count="3" type="stmt"/>
-        <line num="9" count="9" type="stmt"/>
-        <line num="11" count="9" type="cond" truecount="4" falsecount="0"/>
-        <line num="13" count="9" type="cond" truecount="2" falsecount="0"/>
-        <line num="15" count="7" type="stmt"/>
-        <line num="16" count="7" type="stmt"/>
-        <line num="17" count="6" type="stmt"/>
-        <line num="18" count="6" type="stmt"/>
+        <line num="2" count="4" type="stmt"/>
+        <line num="8" count="4" type="stmt"/>
+        <line num="9" count="20" type="stmt"/>
+        <line num="11" count="20" type="cond" truecount="4" falsecount="0"/>
+        <line num="13" count="20" type="cond" truecount="2" falsecount="0"/>
+        <line num="15" count="17" type="stmt"/>
+        <line num="16" count="17" type="stmt"/>
+        <line num="17" count="16" type="stmt"/>
+        <line num="18" count="16" type="stmt"/>
         <line num="20" count="1" type="stmt"/>
-        <line num="24" count="3" type="stmt"/>
+        <line num="24" count="4" type="stmt"/>
         <line num="25" count="5" type="stmt"/>
         <line num="26" count="8" type="cond" truecount="2" falsecount="0"/>
         <line num="27" count="7" type="cond" truecount="2" falsecount="0"/>

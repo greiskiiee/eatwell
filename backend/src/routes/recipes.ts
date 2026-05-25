@@ -1,9 +1,12 @@
 import { Router } from "express";
 import mongoose from "mongoose";
 import { requireAuth, type AuthenticatedRequest } from "../middleware/auth";
+import { optionalAuth } from "../middleware/optionalAuth";
 import { toPublicComment } from "../lib/commentResponse";
 import { CommentModel } from "../models/Comment";
+import { PurchasedRecipeModel } from "../models/PurchasedRecipe";
 import { TechnologistRecipeModel } from "../models/TechnologistRecipe";
+import { validateRecipeCreate } from "../lib/recipeValidation";
 
 export const recipesRouter = Router();
 
@@ -27,16 +30,75 @@ function normalizeImageUrls(body: {
   };
 }
 
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function parseIngredientQuery(value: unknown): string[] {
+  if (typeof value !== "string" || !value.trim()) return [];
+  return value
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
 recipesRouter.get("/", async (req, res) => {
   const limit = Math.min(Math.max(Number(req.query.limit) || 12, 1), 50);
   const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  const ingredients = parseIngredientQuery(req.query.ingredients);
+  const maxMinutes = Number(req.query.maxMinutes);
 
   const filter: Record<string, unknown> = { isDraft: false };
+  const and: Record<string, unknown>[] = [];
+
   if (q) {
-    filter.$or = [
-      { title: { $regex: q, $options: "i" } },
-      { description: { $regex: q, $options: "i" } },
-    ];
+    and.push({
+      $or: [
+        { title: { $regex: escapeRegex(q), $options: "i" } },
+        { description: { $regex: escapeRegex(q), $options: "i" } },
+      ],
+    });
+  }
+
+  for (const ingredient of ingredients) {
+    and.push({
+      ingredients: { $regex: escapeRegex(ingredient), $options: "i" },
+    });
+  }
+
+  if (Number.isFinite(maxMinutes) && maxMinutes > 0) {
+    and.push({
+      $expr: {
+        $and: [
+          {
+            $gt: [
+              {
+                $add: [
+                  { $ifNull: ["$prepTimeMinutes", 0] },
+                  { $ifNull: ["$cookTimeMinutes", 0] },
+                ],
+              },
+              0,
+            ],
+          },
+          {
+            $lte: [
+              {
+                $add: [
+                  { $ifNull: ["$prepTimeMinutes", 0] },
+                  { $ifNull: ["$cookTimeMinutes", 0] },
+                ],
+              },
+              maxMinutes,
+            ],
+          },
+        ],
+      },
+    });
+  }
+
+  if (and.length > 0) {
+    filter.$and = and;
   }
 
   const recipes = await TechnologistRecipeModel.find(filter)
@@ -119,14 +181,48 @@ recipesRouter.post(
   },
 );
 
-recipesRouter.get("/:id", async (req, res) => {
+recipesRouter.get("/:id", optionalAuth, async (req: AuthenticatedRequest, res) => {
   const { id } = req.params;
   if (!mongoose.isValidObjectId(id)) {
     return res.status(400).json({ error: "VALIDATION_ERROR", field: "id" });
   }
-  const recipe = await TechnologistRecipeModel.findById(id);
+  const recipe = await TechnologistRecipeModel.findById(id).lean();
   if (!recipe) return res.status(404).json({ error: "NOT_FOUND" });
-  return res.json(recipe);
+
+  const isPremium = Boolean(recipe.isPremium) && (recipe.price ?? 0) > 0;
+  let locked = false;
+
+  if (isPremium) {
+    const userId = req.auth?.userId;
+    const isOwner =
+      userId &&
+      recipe.createdByUserId &&
+      String(recipe.createdByUserId) === userId;
+    const isAdmin = req.auth?.role === "admin";
+
+    let purchased = false;
+    if (userId) {
+      purchased = Boolean(
+        await PurchasedRecipeModel.exists({ userId, recipeId: id }),
+      );
+    }
+
+    if (!isOwner && !isAdmin && !purchased) {
+      locked = true;
+    }
+  }
+
+  if (locked) {
+    return res.json({
+      ...recipe,
+      ingredients: [],
+      steps: [],
+      videoUrl: "",
+      locked: true,
+    });
+  }
+
+  return res.json({ ...recipe, locked: false });
 });
 
 recipesRouter.post("/", requireAuth, async (req: AuthenticatedRequest, res) => {
@@ -151,24 +247,35 @@ recipesRouter.post("/", requireAuth, async (req: AuthenticatedRequest, res) => {
     videoUrl,
   } = req.body ?? {};
 
-  if (!title?.trim())
-    return res.status(400).json({ error: "VALIDATION_ERROR", field: "title" });
+  const validated = validateRecipeCreate({
+    title,
+    isDraft,
+    ingredients,
+    steps,
+    isPremium,
+    price,
+  });
+  if (!validated.ok) {
+    return res
+      .status(400)
+      .json({ error: "VALIDATION_ERROR", field: validated.field });
+  }
 
   const images = normalizeImageUrls({ imageUrl, imageUrls });
 
   const recipe = await TechnologistRecipeModel.create({
-    title: title.trim(),
+    title: validated.title,
     description,
     servings,
     prepTimeMinutes,
     cookTimeMinutes,
     tags,
-    ingredients,
-    steps,
+    ingredients: validated.ingredients,
+    steps: validated.steps,
     nutrition,
-    isDraft: isDraft ?? true,
-    isPremium: isPremium ?? false,
-    price: isPremium ? price : 0,
+    isDraft: validated.isDraft,
+    isPremium: validated.isPremium,
+    price: validated.price,
     imageUrl: images.imageUrl,
     imageUrls: images.imageUrls,
     videoUrl: typeof videoUrl === "string" ? videoUrl : "",
