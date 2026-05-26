@@ -20,6 +20,14 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "res.cloudinary.com",
       },
+      {
+        protocol: "https",
+        hostname: "images.openfoodfacts.org",
+      },
+      {
+        protocol: "https",
+        hostname: "world.openfoodfacts.org",
+      },
     ],
   },
 };

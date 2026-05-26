@@ -15,6 +15,34 @@ export type TechnologistProfile = {
   approvalStatus?: string;
 };
 
+export type TechnologistAnalyticsItem = {
+  _id: string;
+  title: string;
+  imageUrl: string;
+  isDraft: boolean;
+  isPremium: boolean;
+  price: number;
+  views: number;
+  purchases: number;
+  revenue: number;
+  comments: number;
+  createdAt: string;
+};
+
+export type TechnologistAnalyticsTotals = {
+  recipes: number;
+  published: number;
+  views: number;
+  purchases: number;
+  revenue: number;
+  comments: number;
+};
+
+export type TechnologistAnalytics = {
+  items: TechnologistAnalyticsItem[];
+  totals: TechnologistAnalyticsTotals;
+};
+
 export const technologistApi = {
   getProfile: () =>
     apiFetch<TechnologistProfile>("/api/technologist/me", { token: token() }),
@@ -28,5 +56,10 @@ export const technologistApi = {
       method: "PATCH",
       token: token(),
       body: JSON.stringify(body),
+    }),
+
+  getAnalytics: () =>
+    apiFetch<TechnologistAnalytics>("/api/technologist/analytics", {
+      token: token(),
     }),
 };

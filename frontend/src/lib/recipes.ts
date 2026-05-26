@@ -20,6 +20,7 @@ export type TechnologistRecipe = {
   isDraft?: boolean;
   isPremium?: boolean;
   price?: number;
+  locked?: boolean;
   imageUrl?: string;
   imageUrls?: string[];
   videoUrl?: string;
@@ -38,20 +39,40 @@ export function recipeCoverImage(recipe: TechnologistRecipe): string {
 }
 
 export const recipeApi = {
-  list: (params?: { limit?: number; q?: string }) => {
+  list: (params?: {
+    limit?: number;
+    q?: string;
+    ingredients?: string[];
+    tags?: string[];
+    maxMinutes?: number | null;
+  }) => {
     const qs = new URLSearchParams();
     if (params?.limit) qs.set("limit", String(params.limit));
     if (params?.q?.trim()) qs.set("q", params.q.trim());
+    if (params?.ingredients?.length) {
+      qs.set("ingredients", params.ingredients.join(","));
+    }
+    if (params?.tags?.length) {
+      qs.set("tags", params.tags.join(","));
+    }
+    if (params?.maxMinutes != null && params.maxMinutes > 0) {
+      qs.set("maxMinutes", String(params.maxMinutes));
+    }
     const query = qs.toString();
     return apiFetch<TechnologistRecipe[]>(
       `/api/recipes${query ? `?${query}` : ""}`,
     );
   },
 
+  tags: () => apiFetch<string[]>("/api/recipes/tags"),
+
   mine: () =>
     apiFetch<TechnologistRecipe[]>("/api/recipes/mine", { token: token() }),
 
-  get: (id: string) => apiFetch<TechnologistRecipe>(`/api/recipes/${id}`),
+  get: (id: string) =>
+    apiFetch<TechnologistRecipe>(`/api/recipes/${id}`, {
+      token: getStoredToken() ?? undefined,
+    }),
 
   create: (body: Record<string, unknown>) =>
     apiFetch<TechnologistRecipe>("/api/recipes", {

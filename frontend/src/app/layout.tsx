@@ -3,6 +3,8 @@ import { Geist, Geist_Mono, Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 import { UserProvider } from "@/context/UserContext";
 import { SavedRecipesProvider } from "@/context/SavedRecipesContext";
+import { PurchasedRecipesProvider } from "@/context/PurchasedRecipesContext";
+import { BarcodeScanFab } from "@/components/BarcodeScanFab";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,7 +44,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} ${inter.variable} h-full antialiased`}
       >
         <body>
-          <SavedRecipesProvider>{children}</SavedRecipesProvider>
+          <SavedRecipesProvider>
+            <PurchasedRecipesProvider>
+              {children}
+              <BarcodeScanFab />
+            </PurchasedRecipesProvider>
+          </SavedRecipesProvider>
         </body>
       </html>
     </UserProvider>

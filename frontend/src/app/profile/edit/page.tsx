@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { useAuth } from "@/context/UserContext";
 import { getStoredToken } from "@/lib/auth";
 import { usersApi } from "@/lib/users";
@@ -18,7 +18,7 @@ const inputCls = `w-full px-3.5 py-2.5 bg-white rounded-xl text-[13.5px] text-[#
 
 export default function ProfileEditPage() {
   const router = useRouter();
-  const { user, setAuth } = useAuth();
+  const { user, setAuth, logout } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,6 +30,8 @@ export default function ProfileEditPage() {
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const isTechnologist = user?.role === "technologist";
 
@@ -126,6 +128,21 @@ export default function ProfileEditPage() {
       setError("Хадгалахад алдаа гарлаа. Дахин оролдоно уу.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!user) return;
+    setError("");
+    setDeleting(true);
+    try {
+      await usersApi.remove(user.id);
+      logout();
+      router.replace("/login");
+    } catch {
+      setError("Аккаунт устгахад алдаа гарлаа.");
+      setDeleting(false);
+      setConfirmDelete(false);
     }
   }
 
@@ -276,6 +293,64 @@ export default function ProfileEditPage() {
             {loading ? "Хадгалж байна..." : "Хадгалах"}
           </button>
         </form>
+
+        {!fetching && (
+          <section className="mt-8 rounded-2xl border border-[#B84230]/30 bg-[#FBF0E6] p-5">
+            <div className="flex items-start gap-3">
+              <Trash2 size={18} className="text-[#B84230] shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-bold text-[#B84230]">
+                  Аюултай хэсэг
+                </h3>
+                <p className="text-[12.5px] text-[#5C4A3A] mt-1 leading-relaxed">
+                  Аккаунтаа устгасны дараа таны бүх жор, сэтгэгдэл,
+                  хадгалсан жор, худалдан авалт устах ба сэргээх боломжгүй.
+                </p>
+
+                {!confirmDelete ? (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(true)}
+                    className="mt-3 inline-flex items-center gap-2 px-3 py-2 rounded-xl
+                               bg-white border border-[#B84230]/30 text-[#B84230]
+                               text-[13px] font-semibold hover:bg-[#FBE6E0] transition-colors"
+                  >
+                    <Trash2 size={14} />
+                    Аккаунт устгах
+                  </button>
+                ) : (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-[12.5px] font-semibold text-[#B84230]">
+                      Та итгэлтэй байна уу?
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={handleDelete}
+                        disabled={deleting}
+                        className="px-3 py-2 rounded-xl bg-[#B84230] text-white
+                                   text-[13px] font-semibold hover:bg-[#9C3426]
+                                   transition-colors disabled:opacity-60"
+                      >
+                        {deleting ? "Устгаж байна..." : "Тийм, устга"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDelete(false)}
+                        disabled={deleting}
+                        className="px-3 py-2 rounded-xl bg-white border border-[#D6C9B4]
+                                   text-[#5C4A3A] text-[13px] font-semibold
+                                   hover:bg-[#EFE8DA] transition-colors disabled:opacity-60"
+                      >
+                        Болих
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );

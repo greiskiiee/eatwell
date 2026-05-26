@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { HomeHeader } from "@/components/HomeHeader";
-import { CategoryBar } from "@/components/CategoryBar";
 import { RightPanel } from "@/components/RightPanel";
 import { useMeals } from "@/hooks/useMeals";
-import type { MealDBRecipe } from "@/lib/mealdb";
+import { extractIngredients, type MealDBRecipe } from "@/lib/mealdb";
+import { getMatchingAllergens } from "@/lib/allergens";
+import { AllergenWarningBadge } from "@/components/AllergenWarningBadge";
 import Image from "next/image";
 import Link from "next/link";
 import { Bookmark, ChevronRight } from "lucide-react";
@@ -23,15 +24,26 @@ function FeaturedMeal({
   meal,
   saved,
   onToggleSave,
+  userAllergens,
 }: {
   meal: MealDBRecipe;
   saved: boolean;
   onToggleSave: () => void;
+  userAllergens: string[];
 }) {
+  const matchedAllergens = useMemo(
+    () => getMatchingAllergens(extractIngredients(meal), userAllergens),
+    [meal, userAllergens],
+  );
+  const hasAllergen = matchedAllergens.length > 0;
+
   return (
     <Link
       href={`/recipes/${meal.idMeal}`}
-      className="relative overflow-hidden rounded-2xl flex flex-col justify-end h-52 sm:h-64 md:h-75 group"
+      className={[
+        "relative overflow-hidden rounded-2xl flex flex-col justify-end h-52 sm:h-64 md:h-75 group",
+        hasAllergen ? "ring-2 ring-[#DC2626] ring-offset-2 ring-offset-[#EFE8DA]" : "",
+      ].join(" ")}
     >
       <Image
         src={meal.strMealThumb}
@@ -43,8 +55,9 @@ function FeaturedMeal({
       <div
         className="absolute inset-0"
         style={{
-          background:
-            "linear-gradient(to top, rgba(20,14,8,0.85) 0%, rgba(20,14,8,0.3) 55%, transparent 100%)",
+          background: hasAllergen
+            ? "linear-gradient(to top, rgba(127,29,29,0.88) 0%, rgba(127,29,29,0.35) 55%, transparent 100%)"
+            : "linear-gradient(to top, rgba(20,14,8,0.85) 0%, rgba(20,14,8,0.3) 55%, transparent 100%)",
         }}
       />
       <span
@@ -54,6 +67,11 @@ function FeaturedMeal({
       >
         ★ Онцлох жор
       </span>
+      {hasAllergen && (
+        <div className="absolute top-4 left-36 sm:left-40 z-10">
+          <AllergenWarningBadge matched={matchedAllergens} />
+        </div>
+      )}
       <button
         onClick={(e) => {
           e.preventDefault();
@@ -124,15 +142,16 @@ export function HomeFeed() {
     };
   }, [user?.id, setAuth]);
   const {
-    category,
-    setCategory,
     searchQ,
     setSearchQ,
     selectedIngredients,
     setSelectedIngredients,
+    selectedTag,
+    setSelectedTag,
+    maxMinutes,
+    setMaxMinutes,
     meals,
     featured,
-    categories,
     loading,
   } = useMeals();
   const { labelFor } = useIngredientLabels(selectedIngredients);
@@ -147,7 +166,14 @@ export function HomeFeed() {
     const t = setTimeout(() => {
       setSystemLoading(true);
       recipeApi
-        .list({ limit: 12, q: searchQ.trim() || undefined })
+        .list({
+          limit: 12,
+          q: searchQ.trim() || undefined,
+          ingredients:
+            selectedIngredients.length > 0 ? selectedIngredients : undefined,
+          tags: selectedTag ? [selectedTag] : undefined,
+          maxMinutes,
+        })
         .then((list) => {
           if (!cancelled) setSystemRecipes(list);
         })
@@ -162,7 +188,7 @@ export function HomeFeed() {
       cancelled = true;
       clearTimeout(t);
     };
-  }, [searchQ]);
+  }, [searchQ, selectedIngredients, selectedTag, maxMinutes]);
 
   return (
     <div className="flex h-screen bg-[#EFE8DA]">
@@ -180,6 +206,10 @@ export function HomeFeed() {
             setSelectedIngredients(ings);
             if (ings.length > 0) setSearchQ("");
           }}
+          selectedTag={selectedTag}
+          onTagChange={setSelectedTag}
+          maxMinutes={maxMinutes}
+          onMaxMinutesChange={setMaxMinutes}
           isTechnologist={isTechnologist}
           userName={user?.name}
         />
@@ -219,60 +249,59 @@ export function HomeFeed() {
               </section>
             )}
 
-            {loading ? (
-              <div className="h-75 rounded-2xl bg-[#D6C9B4]/40 animate-pulse" />
-            ) : featured ? (
-              <FeaturedMeal
-                meal={featured}
-                saved={isSaved(featured.idMeal)}
-                onToggleSave={() => toggleSave(featured.idMeal)}
-              />
-            ) : null}
-
-            <CategoryBar
-              categories={categories}
-              active={category}
-              onChange={setCategory}
-            />
-
-            <div className="flex items-center justify-between gap-3 min-w-0">
-              <h2 className="font-display text-[15px] sm:text-[17px] font-semibold text-[#221C16] truncate min-w-0">
-                {searchQ
-                  ? `"${searchQ}" — TheMealDB`
-                  : selectedIngredients.length > 0
-                    ? `${selectedIngredients.map(labelFor).join(", ")} — TheMealDB`
-                    : category === "All"
-                      ? "TheMealDB жорууд"
-                      : `${category} — TheMealDB`}
-              </h2>
-              {!loading && (
-                <span className="text-[12px] text-[#9C8878] shrink-0">
-                  {meals.length} жор
-                </span>
-              )}
-            </div>
-
-            {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <SkeletonCard key={i} />
-                ))}
-              </div>
-            ) : meals.length === 0 ? (
-              <div className="text-center py-20">
-                <p className="text-[#9C8878] text-sm">Жор олдсонгүй</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {meals.map((meal) => (
-                  <MealCard
-                    key={meal.idMeal}
-                    meal={meal}
-                    saved={isSaved(meal.idMeal)}
-                    onToggleSave={() => toggleSave(meal.idMeal)}
+            {maxMinutes == null && (
+              <>
+                {loading ? (
+                  <div className="h-75 rounded-2xl bg-[#D6C9B4]/40 animate-pulse" />
+                ) : featured ? (
+                  <FeaturedMeal
+                    meal={featured}
+                    saved={isSaved(featured.idMeal)}
+                    onToggleSave={() => toggleSave(featured.idMeal)}
+                    userAllergens={user?.allergens ?? []}
                   />
-                ))}
-              </div>
+                ) : null}
+
+                <div className="flex items-center justify-between gap-3 min-w-0">
+                  <h2 className="font-display text-[15px] sm:text-[17px] font-semibold text-[#221C16] truncate min-w-0">
+                    {searchQ
+                      ? `"${searchQ}" — TheMealDB`
+                      : selectedIngredients.length > 0
+                        ? `${selectedIngredients.map(labelFor).join(", ")} — TheMealDB`
+                        : selectedTag
+                          ? `${selectedTag} — TheMealDB`
+                          : "TheMealDB жорууд"}
+                  </h2>
+                  {!loading && (
+                    <span className="text-[12px] text-[#9C8878] shrink-0">
+                      {meals.length} жор
+                    </span>
+                  )}
+                </div>
+
+                {loading ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <SkeletonCard key={i} />
+                    ))}
+                  </div>
+                ) : meals.length === 0 ? (
+                  <div className="text-center py-20">
+                    <p className="text-[#9C8878] text-sm">Жор олдсонгүй</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {meals.map((meal) => (
+                      <MealCard
+                        key={meal.idMeal}
+                        meal={meal}
+                        saved={isSaved(meal.idMeal)}
+                        onToggleSave={() => toggleSave(meal.idMeal)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
 

@@ -49,4 +49,10 @@ export const usersApi = {
       token: token(),
       body: JSON.stringify({ allergens }),
     }).then(mapMeToAuthUser),
+
+  remove: (userId: string) =>
+    apiFetch<void>(`/api/users/${userId}`, {
+      method: "DELETE",
+      token: token(),
+    }),
 };

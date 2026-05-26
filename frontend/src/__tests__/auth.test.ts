@@ -115,6 +115,73 @@ describe("frontend auth", () => {
     expect(res.resetToken).toBe("reset-jwt");
   });
 
+  it("getStoredUser returns null for invalid JSON (bad case)", () => {
+    localStorage.setItem("chimge_user", "not-json");
+    expect(getStoredUser()).toBeNull();
+  });
+
+  it("me fetches current user with token (happy path)", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      text: async () =>
+        JSON.stringify({
+          id: "u1",
+          email: "user@test.com",
+          name: "User",
+          role: "user",
+        }),
+    });
+
+    const user = await authApi.me("jwt-me");
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/auth/me"),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: "Bearer jwt-me",
+        }),
+      }),
+    );
+    expect(user.email).toBe("user@test.com");
+  });
+
+  it("resetPassword calls backend (happy path)", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ message: "ok" }),
+    });
+
+    const res = await authApi.resetPassword("reset-jwt", "newpass123");
+    expect(res.message).toBe("ok");
+  });
+
+  it("signup passes optional role (happy path)", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      text: async () =>
+        JSON.stringify({
+          token: "jwt",
+          user: {
+            id: "t1",
+            email: "tech@test.com",
+            name: "Tech",
+            role: "technologist",
+          },
+        }),
+    });
+
+    await authApi.signup({
+      name: "Tech",
+      email: "tech@test.com",
+      password: "password123",
+      role: "technologist",
+    });
+
+    const body = JSON.parse(
+      (global.fetch as jest.Mock).mock.calls[0][1].body as string,
+    );
+    expect(body.role).toBe("technologist");
+  });
+
   it("stores and clears auth state in localStorage", () => {
     storeAuth("jwt-token", {
       id: "u9",

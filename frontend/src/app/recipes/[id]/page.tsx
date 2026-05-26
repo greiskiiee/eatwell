@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -16,6 +16,12 @@ import { commentsApi, type RecipeComment } from "@/lib/comments";
 import { useUser } from "@/context/UserContext";
 import { useSavedRecipes } from "@/context/SavedRecipesContext";
 import { UserAvatar } from "@/components/UserAvatar";
+import { AllergenAlertBanner } from "@/components/AllergenAlertBanner";
+import {
+  getMatchingAllergens,
+  lineContainsAllergen,
+} from "@/lib/allergens";
+import { useIngredientLabels } from "@/hooks/useIngredientLabels";
 import {
   Bookmark,
   ChevronLeft,
@@ -26,7 +32,10 @@ import {
   Send,
   Flame,
   Users,
+  Lock,
+  ShoppingBag,
 } from "lucide-react";
+import { PurchaseRecipeModal } from "@/components/PurchaseRecipeModal";
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 function parseInstructions(raw: string): string[] {
@@ -204,6 +213,20 @@ export default function RecipePage() {
   const [commentText, setCommentText] = useState("");
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [commentError, setCommentError] = useState("");
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
+
+  const ingredientLines = useMemo(() => {
+    if (meal) return extractIngredients(meal);
+    if (systemRecipe) return systemRecipe.ingredients ?? [];
+    return [];
+  }, [meal, systemRecipe]);
+
+  const userAllergens = user?.allergens ?? [];
+  const matchedAllergens = useMemo(
+    () => getMatchingAllergens(ingredientLines, userAllergens),
+    [ingredientLines, userAllergens],
+  );
+  const { labelFor } = useIngredientLabels(matchedAllergens);
 
   useEffect(() => {
     setLoading(true);
@@ -293,6 +316,22 @@ export default function RecipePage() {
     : displayFromSystem(systemRecipe!);
   const { ingredients, steps, nutrition } = display;
   const youtubeId = youtubeIdFromUrl(display.youtubeUrl);
+  const isLocked = Boolean(systemRecipe?.locked);
+  const premiumPrice = systemRecipe?.price ?? 0;
+
+  function openPurchase() {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    setPurchaseOpen(true);
+  }
+
+  async function handleUnlocked() {
+    if (!isMongoObjectId(id)) return;
+    const r = await recipeApi.get(id);
+    setSystemRecipe(r);
+  }
 
   return (
     <div className="min-h-screen bg-[#EFE8DA]">
@@ -373,6 +412,8 @@ export default function RecipePage() {
 
       {/* ── Body ── */}
       <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 space-y-6">
+        <AllergenAlertBanner matched={matchedAllergens} labelFor={labelFor} />
+
         {/* Stats row */}
         <div className="flex flex-wrap gap-3">
           {display.stats.map(({ icon: Icon, label }) => (
@@ -387,6 +428,34 @@ export default function RecipePage() {
             </div>
           ))}
         </div>
+
+        {isLocked && (
+          <div
+            className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-2xl
+                       bg-[#FBF0E6] border border-[#B84230]/30"
+          >
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Lock size={18} className="text-[#B84230] shrink-0" />
+              <div>
+                <p className="text-[13px] font-semibold text-[#221C16]">
+                  Premium жор
+                </p>
+                <p className="text-[12px] text-[#9C8878]">
+                  Орц, заавар, видеог харахын тулд худалдан авна уу
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={openPurchase}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
+                         bg-[#B84230] text-white text-[13px] font-semibold shrink-0"
+            >
+              <ShoppingBag size={15} />
+              Жор худалдан авах — {premiumPrice.toLocaleString()}₮
+            </button>
+          </div>
+        )}
 
         {/* Tab switcher */}
         <div
@@ -418,31 +487,81 @@ export default function RecipePage() {
           )}
         </div>
 
+        {isLocked ? (
+          <div
+            className="relative rounded-2xl overflow-hidden border border-[#D6C9B4]/60
+                       bg-white shadow-[0_2px_12px_rgba(34,28,22,0.06)] min-h-[220px]"
+          >
+            <div className="blur-md p-6 space-y-3 pointer-events-none select-none">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-9 bg-[#EFE8DA] rounded-lg opacity-80"
+                />
+              ))}
+            </div>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white/75 px-4">
+              <Lock size={32} className="text-[#B84230]" />
+              <p className="text-[13px] font-semibold text-[#221C16] text-center">
+                Premium агуулга түгжигдсэн
+              </p>
+              <button
+                type="button"
+                onClick={openPurchase}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#B84230] text-white text-[13px] font-semibold"
+              >
+                <ShoppingBag size={15} />
+                Жор худалдан авах
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
         {/* ── Ingredients tab ── */}
         {activeTab === "ingredients" && (
           <div
             className="bg-white border border-[#D6C9B4]/60 rounded-2xl overflow-hidden
                           shadow-[0_2px_12px_rgba(34,28,22,0.06)]"
           >
-            {ingredients.map((ing, i) => (
-              <div
-                key={i}
-                className={[
-                  "flex items-center gap-3 px-5 py-3.5 text-[13.5px]",
-                  i !== ingredients.length - 1
-                    ? "border-b border-[#EFE8DA]"
-                    : "",
-                ].join(" ")}
-              >
-                <span
-                  className="w-5 h-5 rounded-full bg-[#F5E6E2] text-[#B84230] text-[10px]
-                               font-bold flex items-center justify-center shrink-0"
+            {ingredients.map((ing, i) => {
+              const isAllergen = userAllergens.some((a) =>
+                lineContainsAllergen(ing, a),
+              );
+              return (
+                <div
+                  key={i}
+                  className={[
+                    "flex items-center gap-3 px-5 py-3.5 text-[13.5px]",
+                    i !== ingredients.length - 1
+                      ? "border-b border-[#EFE8DA]"
+                      : "",
+                    isAllergen ? "bg-[#FEF2F2]" : "",
+                  ].join(" ")}
                 >
-                  {i + 1}
-                </span>
-                <span className="text-[#221C16] font-medium">{ing}</span>
-              </div>
-            ))}
+                  <span
+                    className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0 ${
+                      isAllergen
+                        ? "bg-[#DC2626] text-white"
+                        : "bg-[#F5E6E2] text-[#B84230]"
+                    }`}
+                  >
+                    {i + 1}
+                  </span>
+                  <span
+                    className={`font-medium ${
+                      isAllergen ? "text-[#991B1B]" : "text-[#221C16]"
+                    }`}
+                  >
+                    {ing}
+                    {isAllergen && (
+                      <span className="ml-2 text-[10px] font-bold uppercase text-[#DC2626]">
+                        харшил
+                      </span>
+                    )}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -595,9 +714,11 @@ export default function RecipePage() {
             </p>
           </div>
         )}
+          </>
+        )}
 
         {/* ── YouTube ── */}
-        {youtubeId && (
+        {youtubeId && !isLocked && (
           <div className="space-y-3">
             <h3 className="text-[13px] font-bold text-[#9C8878] uppercase tracking-widest">
               Видео заавар
@@ -731,6 +852,17 @@ export default function RecipePage() {
           </div>
         </div>
       </div>
+
+      {systemRecipe && isLocked && (
+        <PurchaseRecipeModal
+          open={purchaseOpen}
+          onClose={() => setPurchaseOpen(false)}
+          recipeId={systemRecipe._id}
+          recipeTitle={systemRecipe.title}
+          price={premiumPrice}
+          onUnlocked={() => void handleUnlocked()}
+        />
+      )}
     </div>
   );
 }

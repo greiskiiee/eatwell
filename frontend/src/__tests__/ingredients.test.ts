@@ -40,6 +40,19 @@ describe("recipe ingredients lib", () => {
     expect(ingredientToGrams(100, "ml")).toBe(100);
   });
 
+  it("falls back to raw amount for unknown unit (edge case)", () => {
+    expect(
+      ingredientToGrams(3, "unknown" as IngredientEntry["unit"]),
+    ).toBe(3);
+    expect(
+      formatIngredientAmount({
+        food,
+        amount: 5,
+        unit: "unknown" as IngredientEntry["unit"],
+      }),
+    ).toBe("5 unknown");
+  });
+
   it("exposes all unit options", () => {
     expect(INGREDIENT_UNITS.map((u) => u.id)).toEqual([
       "g",

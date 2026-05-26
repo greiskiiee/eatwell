@@ -7,6 +7,7 @@ import { ChevronLeft, Save, Send } from "lucide-react";
 import { recipeApi } from "@/lib/recipes";
 import { ImageFileUpload } from "@/components/ImageFileUpload";
 import { uploadApi } from "@/lib/upload";
+import { validateRecipeTextForm } from "@/lib/recipeForm";
 
 const inputCls = `w-full px-3.5 py-2.5 bg-white rounded-xl text-[13.5px] text-[#221C16]
   border border-[#D6C9B4] focus:border-[#2D5A4A] focus:outline-none transition-colors`;
@@ -53,8 +54,13 @@ export default function EditRecipePage() {
   }, [id]);
 
   async function submit(isDraft: boolean) {
-    if (!title.trim()) {
-      setError("Гарчиг оруулна уу");
+    const validationError = validateRecipeTextForm(
+      { title, ingredientsText: ingredients, stepsText: steps },
+      isDraft,
+    );
+
+    if (validationError) {
+      setError(validationError);
       return;
     }
     setError("");
@@ -135,8 +141,11 @@ export default function EditRecipePage() {
 
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-4">
         {error && (
-          <div className="px-4 py-3 rounded-xl bg-[#FBF0E6] text-[#B84230] text-sm">
-            {error}
+          <div
+            className="px-4 py-3 rounded-xl bg-[#FBF0E6] border border-[#B84230]/20
+                          text-[#B84230] text-[13px] font-medium"
+          >
+            ⚠ {error}
           </div>
         )}
         <div className="bg-white rounded-2xl border border-[#D6C9B4]/70 p-5 space-y-4">
@@ -197,6 +206,7 @@ export default function EditRecipePage() {
               Орц (мөр бүрт нэг)
             </label>
             <textarea
+              aria-label="Орцууд"
               value={ingredients}
               onChange={(e) => setIngredients(e.target.value)}
               rows={5}
@@ -208,6 +218,7 @@ export default function EditRecipePage() {
               Алхам (мөр бүрт нэг)
             </label>
             <textarea
+              aria-label="Алхам"
               value={steps}
               onChange={(e) => setSteps(e.target.value)}
               rows={5}

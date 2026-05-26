@@ -2,6 +2,8 @@
 import { Search, Bell, Plus } from "lucide-react";
 import Link from "next/link";
 import { IngredientFilter } from "@/components/IngredientFilter";
+import { TagFilter } from "@/components/TagFilter";
+import { SearchTimeFilter } from "@/components/SearchTimeFilter";
 import { useIngredientLabels } from "@/hooks/useIngredientLabels";
 
 interface Props {
@@ -9,6 +11,10 @@ interface Props {
   onSearch: (v: string) => void;
   selectedIngredients: string[];
   onIngredientsChange: (ingredients: string[]) => void;
+  selectedTag: string | null;
+  onTagChange: (tag: string | null) => void;
+  maxMinutes: number | null;
+  onMaxMinutesChange: (minutes: number | null) => void;
   isTechnologist: boolean;
   userName?: string;
 }
@@ -18,6 +24,10 @@ export function HomeHeader({
   onSearch,
   selectedIngredients,
   onIngredientsChange,
+  selectedTag,
+  onTagChange,
+  maxMinutes,
+  onMaxMinutesChange,
   isTechnologist,
   userName,
 }: Props) {
@@ -44,6 +54,8 @@ export function HomeHeader({
                        transition-colors placeholder-[#9C8878] shadow-sm"
           />
         </div>
+
+        <TagFilter selected={selectedTag} onChange={onTagChange} />
 
         <IngredientFilter
           selected={selectedIngredients}
@@ -77,6 +89,8 @@ export function HomeHeader({
           )}
         </div>
       </div>
+
+      <SearchTimeFilter maxMinutes={maxMinutes} onChange={onMaxMinutesChange} />
 
       {selectedIngredients.length > 0 && (
         <div className="flex flex-wrap gap-1.5 min-w-0">

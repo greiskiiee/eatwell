@@ -60,6 +60,48 @@ describe("apiFetch", () => {
     });
   });
 
+  it("prefixes relative paths with API base URL", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ ok: true }),
+    });
+
+    await apiFetch("/api/relative");
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringMatching(/\/api\/relative$/),
+      expect.any(Object),
+    );
+  });
+
+  it("merges custom headers with defaults", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({}),
+    });
+
+    await apiFetch("/api/custom-headers", {
+      headers: { "X-Custom": "yes" },
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({ "X-Custom": "yes" }),
+      }),
+    );
+  });
+
+  it("returns plain text when response is not JSON", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      text: async () => "plain-text-response",
+    });
+
+    const data = await apiFetch<string>("/api/text");
+    expect(data).toBe("plain-text-response");
+  });
+
   it("handles empty response body", async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,

@@ -16,9 +16,9 @@ export const CATEGORIES = [
 ];
 
 export const NAV_ITEMS = [
-  { icon: Home, label: "Нүүр", href: "/", active: true },
-  { icon: Search, label: "Хайх", href: "/search", active: false },
-  { icon: Bookmark, label: "Хадгалсан", href: "/saved", active: false },
+  { icon: Home, label: "Нүүр", href: "/home" },
+  { icon: Search, label: "Хайх", href: "/search" },
+  { icon: Bookmark, label: "Хадгалсан", href: "/saved" },
   // {
   //   icon: BookOpen,
   //   label: "Миний хоолны дэвтэр",
@@ -30,7 +30,6 @@ export const NAV_ITEMS = [
     icon: ShoppingCart,
     label: "Худалдаж авсан жорууд",
     href: "/shopping",
-    active: false,
   },
 ];
 

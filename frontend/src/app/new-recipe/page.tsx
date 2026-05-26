@@ -25,6 +25,7 @@ import { formatIngredientEntry } from "@/lib/ingredients";
 import { calcNutrition } from "@/lib/usda";
 import { MultiImageUpload } from "@/components/MultiImageUpload";
 import { uploadApi } from "@/lib/upload";
+import { validateNewRecipeForm } from "@/lib/recipeForm";
 
 function Field({
   label,
@@ -166,8 +167,13 @@ export default function NewRecipePage() {
   const nutrition = calcNutrition(ingredients);
 
   async function submit(isDraft: boolean) {
-    if (!title.trim()) {
-      setError("Гарчиг оруулна уу");
+    const validationError = validateNewRecipeForm(
+      { title, ingredients, steps },
+      isDraft,
+    );
+
+    if (validationError) {
+      setError(validationError);
       return;
     }
     setError("");

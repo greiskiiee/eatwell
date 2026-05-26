@@ -2,7 +2,7 @@
 
 import { useAuth, useUser } from "@/context/UserContext";
 import { NAV_ITEMS } from "@/lib/constants";
-import { BookOpen, Menu, Settings, X, UserPen, LogOut } from "lucide-react";
+import { BookOpen, Menu, Settings, X, UserPen, LogOut, BarChart3 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -20,6 +20,7 @@ export const Sidebar = () => {
   const isTechnologist = user?.role === "technologist";
   const myRecipesActive =
     pathname === "/my-recipes" || pathname.startsWith("/edit-recipe");
+  const analyticsActive = pathname === "/technologist/analytics";
 
   useEffect(() => {
     if (!settingsOpen) return;
@@ -74,7 +75,12 @@ export const Sidebar = () => {
       </div>
 
       <nav className="flex flex-col gap-0.5 px-3 flex-1 overflow-y-auto">
-        {NAV_ITEMS.map(({ icon: Icon, label, href, active }) => (
+        {NAV_ITEMS.map(({ icon: Icon, label, href }) => {
+          const active =
+            href === "/home"
+              ? pathname === "/home" || pathname === "/"
+              : pathname === href || pathname.startsWith(`${href}/`);
+          return (
           <Link
             key={label}
             href={href}
@@ -92,25 +98,44 @@ export const Sidebar = () => {
             />
             {label}
           </Link>
-        ))}
+          );
+        })}
 
         {isTechnologist && (
-          <Link
-            href="/my-recipes"
-            onClick={() => setOpen(false)}
-            className={[
-              "flex items-center gap-3 w-full px-3 py-2.25 rounded-xl text-[13.5px] font-medium transition-colors",
-              myRecipesActive
-                ? "bg-[#F5E6E2] text-[#B84230]"
-                : "text-[#5C4A3A] hover:bg-[#EFE8DA]",
-            ].join(" ")}
-          >
-            <BookOpen
-              size={18}
-              className={myRecipesActive ? "text-[#B84230]" : "text-[#9C8878]"}
-            />
-            Миний жорууд
-          </Link>
+          <>
+            <Link
+              href="/my-recipes"
+              onClick={() => setOpen(false)}
+              className={[
+                "flex items-center gap-3 w-full px-3 py-2.25 rounded-xl text-[13.5px] font-medium transition-colors",
+                myRecipesActive
+                  ? "bg-[#F5E6E2] text-[#B84230]"
+                  : "text-[#5C4A3A] hover:bg-[#EFE8DA]",
+              ].join(" ")}
+            >
+              <BookOpen
+                size={18}
+                className={myRecipesActive ? "text-[#B84230]" : "text-[#9C8878]"}
+              />
+              Миний жорууд
+            </Link>
+            <Link
+              href="/technologist/analytics"
+              onClick={() => setOpen(false)}
+              className={[
+                "flex items-center gap-3 w-full px-3 py-2.25 rounded-xl text-[13.5px] font-medium transition-colors",
+                analyticsActive
+                  ? "bg-[#F5E6E2] text-[#B84230]"
+                  : "text-[#5C4A3A] hover:bg-[#EFE8DA]",
+              ].join(" ")}
+            >
+              <BarChart3
+                size={18}
+                className={analyticsActive ? "text-[#B84230]" : "text-[#9C8878]"}
+              />
+              Аналитик
+            </Link>
+          </>
         )}
 
         {user?.role === "admin" && (
