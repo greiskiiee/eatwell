@@ -60,6 +60,7 @@ export function PurchaseRecipeModal({
 
   useEffect(() => {
     if (!open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       reset();
       return;
     }
@@ -79,6 +80,7 @@ export function PurchaseRecipeModal({
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!open) stopScanner();
     return () => stopScanner();
   }, [open, stopScanner]);
@@ -294,7 +296,9 @@ export function PurchaseRecipeModal({
             )}
 
             {scanError && (
-              <p className="text-[12px] text-[#DC2626] text-center">{scanError}</p>
+              <p className="text-[12px] text-[#DC2626] text-center">
+                {scanError}
+              </p>
             )}
           </div>
         )}

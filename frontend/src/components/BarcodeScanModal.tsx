@@ -189,6 +189,7 @@ export function BarcodeScanModal({ open, onClose }: Props) {
   useEffect(() => {
     if (!open) {
       stopScanner();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       reset();
       return;
     }

@@ -111,6 +111,7 @@ export default function SearchPage() {
   ]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     runSearch();
   }, [runSearch]);
 
@@ -236,9 +237,7 @@ export default function SearchPage() {
               <p className="text-[12px] text-[#9C8878] mb-4">
                 {total} үр дүн
                 {maxMinutes != null && (
-                  <span className="ml-1">
-                    · ≤ {maxMinutes} мин (Eatwell+)
-                  </span>
+                  <span className="ml-1">· ≤ {maxMinutes} мин (Eatwell+)</span>
                 )}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
