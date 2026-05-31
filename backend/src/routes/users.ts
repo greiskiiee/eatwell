@@ -2,6 +2,11 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { UserModel, type UserRole } from "../models/User";
 import { TechnologistProfileModel } from "../models/TechnologistProfile";
+import { TechnologistRecipeModel } from "../models/TechnologistRecipe";
+import { CommentModel } from "../models/Comment";
+import { SavedRecipeModel } from "../models/SavedRecipe";
+import { PurchasedRecipeModel } from "../models/PurchasedRecipe";
+import { PasswordResetOtpModel } from "../models/PasswordResetOtp";
 import { requireAuth, type AuthenticatedRequest } from "../middleware/auth";
 
 export const usersRouter = Router();
@@ -72,14 +77,22 @@ usersRouter.patch("/:id", requireAuth, async (req: AuthenticatedRequest, res) =>
   return res.json(user);
 });
 
-// Self or admin: delete user
+// Self or admin: delete user (cascade cleanup of all related data)
 usersRouter.delete("/:id", requireAuth, async (req: AuthenticatedRequest, res) => {
   const id = String(req.params.id);
   if (!canManageUser(req.auth!, id)) return res.status(403).json({ error: "FORBIDDEN" });
 
   const deleted = await UserModel.findByIdAndDelete(id);
   if (!deleted) return res.status(404).json({ error: "NOT_FOUND" });
-  await TechnologistProfileModel.deleteOne({ userId: deleted._id });
+
+  await Promise.all([
+    TechnologistProfileModel.deleteOne({ userId: deleted._id }),
+    TechnologistRecipeModel.deleteMany({ createdByUserId: deleted._id }),
+    CommentModel.deleteMany({ author: deleted._id }),
+    SavedRecipeModel.deleteMany({ userId: deleted._id }),
+    PurchasedRecipeModel.deleteMany({ userId: deleted._id }),
+    PasswordResetOtpModel.deleteMany({ email: deleted.email }),
+  ]);
 
   return res.status(204).send();
 });

@@ -40,7 +40,7 @@ export default function AdminApplicationsPage() {
     <div className="space-y-6">
       <div>
         <h2 className="font-display text-xl font-semibold text-[#221C16]">
-          Технологийн бүртгэлийн хүсэлт
+          Хүнсний технологичийн бүртгэлийн хүсэлт
         </h2>
         <p className="text-sm text-[#9C8878] mt-1">
           Баталгаажуулах баримт шалгаж зөвшөөрөх эсвэл татгалзана. Шийдвэрийг

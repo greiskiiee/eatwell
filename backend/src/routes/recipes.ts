@@ -42,10 +42,25 @@ function parseIngredientQuery(value: unknown): string[] {
     .filter(Boolean);
 }
 
+recipesRouter.get("/tags", async (_req, res) => {
+  try {
+    const tags = await TechnologistRecipeModel.distinct("tags", {
+      isDraft: false,
+    });
+    const clean = (tags as unknown[])
+      .filter((t): t is string => typeof t === "string" && t.trim().length > 0)
+      .map((t) => t.trim());
+    return res.json(clean);
+  } catch {
+    return res.json([]);
+  }
+});
+
 recipesRouter.get("/", async (req, res) => {
   const limit = Math.min(Math.max(Number(req.query.limit) || 12, 1), 50);
   const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
   const ingredients = parseIngredientQuery(req.query.ingredients);
+  const tags = parseIngredientQuery(req.query.tags);
   const maxMinutes = Number(req.query.maxMinutes);
 
   const filter: Record<string, unknown> = { isDraft: false };
@@ -63,6 +78,14 @@ recipesRouter.get("/", async (req, res) => {
   for (const ingredient of ingredients) {
     and.push({
       ingredients: { $regex: escapeRegex(ingredient), $options: "i" },
+    });
+  }
+
+  if (tags.length > 0) {
+    and.push({
+      tags: {
+        $in: tags.map((t) => new RegExp(`^${escapeRegex(t)}$`, "i")),
+      },
     });
   }
 
@@ -192,24 +215,30 @@ recipesRouter.get("/:id", optionalAuth, async (req: AuthenticatedRequest, res) =
   const isPremium = Boolean(recipe.isPremium) && (recipe.price ?? 0) > 0;
   let locked = false;
 
+  const viewerId = req.auth?.userId;
+  const isOwnerView =
+    viewerId &&
+    recipe.createdByUserId &&
+    String(recipe.createdByUserId) === viewerId;
+
   if (isPremium) {
-    const userId = req.auth?.userId;
-    const isOwner =
-      userId &&
-      recipe.createdByUserId &&
-      String(recipe.createdByUserId) === userId;
     const isAdmin = req.auth?.role === "admin";
 
     let purchased = false;
-    if (userId) {
+    if (viewerId) {
       purchased = Boolean(
-        await PurchasedRecipeModel.exists({ userId, recipeId: id }),
+        await PurchasedRecipeModel.exists({ userId: viewerId, recipeId: id }),
       );
     }
 
-    if (!isOwner && !isAdmin && !purchased) {
+    if (!isOwnerView && !isAdmin && !purchased) {
       locked = true;
     }
+  }
+
+  if (!isOwnerView && !recipe.isDraft) {
+    TechnologistRecipeModel.updateOne({ _id: id }, { $inc: { views: 1 } })
+      .catch(() => {});
   }
 
   if (locked) {

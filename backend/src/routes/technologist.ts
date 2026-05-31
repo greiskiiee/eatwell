@@ -1,5 +1,9 @@
 import { Router } from "express";
+import mongoose from "mongoose";
 import { TechnologistProfileModel } from "../models/TechnologistProfile";
+import { TechnologistRecipeModel } from "../models/TechnologistRecipe";
+import { PurchasedRecipeModel } from "../models/PurchasedRecipe";
+import { CommentModel } from "../models/Comment";
 import { requireAuth, requireRole, type AuthenticatedRequest } from "../middleware/auth";
 
 export const technologistRouter = Router();
@@ -21,6 +25,86 @@ technologistRouter.get(
     }
 
     return res.json(profile);
+  },
+);
+
+technologistRouter.get(
+  "/analytics",
+  requireAuth,
+  requireRole(["technologist", "admin"]),
+  async (req: AuthenticatedRequest, res) => {
+    const userId = new mongoose.Types.ObjectId(req.auth!.userId);
+
+    const recipes = await TechnologistRecipeModel.find({
+      createdByUserId: userId,
+    })
+      .select("title imageUrl views isDraft isPremium price createdAt")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const recipeIds = recipes.map((r) => r._id);
+
+    const [purchaseAgg, commentAgg] = await Promise.all([
+      PurchasedRecipeModel.aggregate([
+        { $match: { recipeId: { $in: recipeIds } } },
+        {
+          $group: {
+            _id: "$recipeId",
+            count: { $sum: 1 },
+            revenue: { $sum: "$amount" },
+          },
+        },
+      ]),
+      CommentModel.aggregate([
+        { $match: { recipeId: { $in: recipeIds.map((id) => String(id)) } } },
+        { $group: { _id: "$recipeId", count: { $sum: 1 } } },
+      ]),
+    ]);
+
+    const purchaseMap = new Map<string, { count: number; revenue: number }>();
+    for (const row of purchaseAgg) {
+      purchaseMap.set(String(row._id), {
+        count: row.count ?? 0,
+        revenue: row.revenue ?? 0,
+      });
+    }
+
+    const commentMap = new Map<string, number>();
+    for (const row of commentAgg) {
+      commentMap.set(String(row._id), row.count ?? 0);
+    }
+
+    const items = recipes.map((r) => {
+      const id = String(r._id);
+      const p = purchaseMap.get(id) ?? { count: 0, revenue: 0 };
+      return {
+        _id: id,
+        title: r.title,
+        imageUrl: r.imageUrl ?? "",
+        isDraft: Boolean(r.isDraft),
+        isPremium: Boolean(r.isPremium),
+        price: r.price ?? 0,
+        views: r.views ?? 0,
+        purchases: p.count,
+        revenue: p.revenue,
+        comments: commentMap.get(id) ?? 0,
+        createdAt: r.createdAt,
+      };
+    });
+
+    const totals = items.reduce(
+      (acc, r) => ({
+        recipes: acc.recipes + 1,
+        published: acc.published + (r.isDraft ? 0 : 1),
+        views: acc.views + r.views,
+        purchases: acc.purchases + r.purchases,
+        revenue: acc.revenue + r.revenue,
+        comments: acc.comments + r.comments,
+      }),
+      { recipes: 0, published: 0, views: 0, purchases: 0, revenue: 0, comments: 0 },
+    );
+
+    return res.json({ items, totals });
   },
 );
 

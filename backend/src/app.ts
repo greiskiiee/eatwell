@@ -17,6 +17,7 @@ import { uploadRouter } from "./routes/upload";
 import { savedRecipesRouter } from "./routes/savedRecipes";
 import { ingredientsRouter } from "./routes/ingredients";
 import { purchasesRouter } from "./routes/purchases";
+import { productsRouter } from "./routes/products";
 
 export function createApp() {
   const app = express();
@@ -56,6 +57,7 @@ export function createApp() {
   app.use("/api/saved-recipes", savedRecipesRouter);
   app.use("/api/ingredients", ingredientsRouter);
   app.use("/api/purchases", purchasesRouter);
+  app.use("/api/products", productsRouter);
 
   app.use(notFound);
   app.use(errorHandler);

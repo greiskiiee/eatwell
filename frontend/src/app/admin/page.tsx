@@ -28,7 +28,7 @@ function formatDate(value?: string) {
 
 const ROLE_LABELS: Record<string, string> = {
   user: "Хэрэглэгч",
-  technologist: "Технолог",
+  technologist: "Хүнсний технологич",
   admin: "Админ",
 };
 
@@ -125,7 +125,7 @@ export default function AdminDashboardPage() {
           <StatCard
             label="Нийт хэрэглэгч"
             value={stats.users.total}
-            hint={`${stats.users.regular} энгийн · ${stats.users.technologists} технолог`}
+            hint={`${stats.users.regular} энгийн · ${stats.users.technologists} технологич`}
             icon={Users}
             tone="brand"
           />
@@ -137,7 +137,7 @@ export default function AdminDashboardPage() {
             tone={stats.applications.pending > 0 ? "warning" : "default"}
           />
           <StatCard
-            label="Технологийн жор"
+            label="Технологчийн жор"
             value={stats.recipes.total}
             hint={`${stats.recipes.published} нийтэлсэн · ${stats.recipes.drafts} ноорог`}
             icon={ChefHat}
@@ -149,24 +149,6 @@ export default function AdminDashboardPage() {
             hint={`${stats.ingredients.untranslated} орчуулаагүй / ${stats.ingredients.total}`}
             icon={Languages}
             tone={stats.ingredients.untranslated > 50 ? "warning" : "default"}
-          />
-        </div>
-      </section>
-
-      <section>
-        <h3 className="text-[11px] font-bold text-[#9C8878] uppercase tracking-wider mb-3">
-          Идэвхжил
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <StatCard
-            label="Сэтгэгдэл"
-            value={stats.engagement.comments}
-            icon={MessageSquare}
-          />
-          <StatCard
-            label="Хадгалсан жор"
-            value={stats.engagement.savedRecipes}
-            icon={Bookmark}
           />
         </div>
       </section>
@@ -185,7 +167,9 @@ export default function AdminDashboardPage() {
               <UserCheck size={18} />
             </span>
             <div>
-              <p className="text-sm font-semibold text-[#221C16]">Хүсэлт шалгах</p>
+              <p className="text-sm font-semibold text-[#221C16]">
+                Хүсэлт шалгах
+              </p>
               <p className="text-[12px] text-[#9C8878]">
                 {stats.applications.pending} хүлээгдэж байна
               </p>
@@ -200,7 +184,9 @@ export default function AdminDashboardPage() {
               <Users size={18} />
             </span>
             <div>
-              <p className="text-sm font-semibold text-[#221C16]">Хэрэглэгчид</p>
+              <p className="text-sm font-semibold text-[#221C16]">
+                Хэрэглэгчид
+              </p>
               <p className="text-[12px] text-[#9C8878]">
                 {stats.users.total} бүртгэлтэй
               </p>
@@ -215,7 +201,9 @@ export default function AdminDashboardPage() {
               <Languages size={18} />
             </span>
             <div>
-              <p className="text-sm font-semibold text-[#221C16]">Орц орчуулах</p>
+              <p className="text-sm font-semibold text-[#221C16]">
+                Орц орчуулах
+              </p>
               <p className="text-[12px] text-[#9C8878]">
                 {stats.ingredients.untranslated} үлдсэн
               </p>
@@ -243,7 +231,9 @@ export default function AdminDashboardPage() {
             <ul className="divide-y divide-[#EFE8DA]">
               {stats.recentApplications.map((app) => (
                 <li key={app.userId} className="px-5 py-3.5">
-                  <p className="text-sm font-semibold text-[#221C16]">{app.name}</p>
+                  <p className="text-sm font-semibold text-[#221C16]">
+                    {app.name}
+                  </p>
                   <p className="text-[12px] text-[#5C4A3A]">{app.email}</p>
                   <p className="text-[11px] text-[#9C8878] mt-0.5 truncate">
                     {app.credentials || "—"} · {formatDate(app.createdAt)}
@@ -279,7 +269,9 @@ export default function AdminDashboardPage() {
                     <p className="text-sm font-semibold text-[#221C16] truncate">
                       {u.name || u.email}
                     </p>
-                    <p className="text-[12px] text-[#5C4A3A] truncate">{u.email}</p>
+                    <p className="text-[12px] text-[#5C4A3A] truncate">
+                      {u.email}
+                    </p>
                   </div>
                   <div className="text-right shrink-0">
                     <span className="text-[10px] font-bold uppercase text-[#B84230] bg-[#B84230]/10 px-2 py-0.5 rounded-full">

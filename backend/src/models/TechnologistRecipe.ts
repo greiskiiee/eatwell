@@ -28,6 +28,7 @@ const TechnologistRecipeSchema = new mongoose.Schema(
     videoUrl: { type: String, default: "" },
     imageUrl: { type: String, default: "" },
     imageUrls: { type: [String], default: [] },
+    views: { type: Number, default: 0, min: 0 },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
   },

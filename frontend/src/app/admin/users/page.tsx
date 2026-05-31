@@ -9,7 +9,7 @@ import type { AdminUserRow } from "@/lib/types-admin";
 const ROLE_LABELS: Record<string, string> = {
   all: "Бүгд",
   user: "Хэрэглэгч",
-  technologist: "Технолог",
+  technologist: "Хүнсний технологич",
   admin: "Админ",
 };
 
