@@ -237,13 +237,13 @@ describe("NewRecipePage — create recipe", () => {
     });
   });
 
-  it("redirects guest to technologist login", async () => {
+  it("redirects guest to login", async () => {
     mockUseUser.mockReturnValue(null);
 
     renderNewRecipePage();
 
     await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith("/technologist/login");
+      expect(mockReplace).toHaveBeenCalledWith("/login");
     });
   });
 });

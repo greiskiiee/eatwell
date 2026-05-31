@@ -140,7 +140,7 @@ export default function NewRecipePage() {
 
   useEffect(() => {
     if (!user) {
-      router.replace("/technologist/login");
+      router.replace("/login");
       return;
     }
     if (user.role !== "technologist" && user.role !== "admin") {
