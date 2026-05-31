@@ -48,8 +48,11 @@ export function useMeals() {
         }
 
         if (selectedIngredients.length > 0) {
-          const results = await getMealsByIngredients(selectedIngredients, 12);
-          if (!signal.cancelled) setResults(results);
+          const results = await getMealsByIngredients(selectedIngredients);
+          if (!signal.cancelled) {
+            setFeatured(null);
+            setMeals(results);
+          }
           return;
         }
 
@@ -64,7 +67,7 @@ export function useMeals() {
           return;
         }
 
-        const results = await getRandomMeals(12);
+        const results = await getRandomMeals(24);
         if (!signal.cancelled) setResults(results);
       } finally {
         if (!signal.cancelled) setLoading(false);

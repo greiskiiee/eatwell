@@ -62,7 +62,7 @@ export default function SearchPage() {
     setLoading(true);
     try {
       const systemPromise = recipeApi.list({
-        limit: 24,
+        limit: 50,
         q: debouncedQ || undefined,
         ingredients:
           selectedIngredients.length > 0 ? selectedIngredients : undefined,
@@ -73,7 +73,7 @@ export default function SearchPage() {
       let mealPromise: Promise<MealDBRecipe[]> = Promise.resolve([]);
       if (maxMinutes == null) {
         if (selectedIngredients.length > 0) {
-          mealPromise = getMealsByIngredients(selectedIngredients, 24);
+          mealPromise = getMealsByIngredients(selectedIngredients);
         } else if (debouncedQ) {
           mealPromise = searchMeals(debouncedQ);
         } else if (selectedTag) {
@@ -236,28 +236,59 @@ export default function SearchPage() {
             <>
               <p className="text-[12px] text-[#9C8878] mb-4">
                 {total} үр дүн
+                {selectedIngredients.length > 0 && (
+                  <span className="ml-1">
+                    · орц: {selectedIngredients.map(labelFor).join(", ")}
+                  </span>
+                )}
                 {maxMinutes != null && (
                   <span className="ml-1">· ≤ {maxMinutes} мин (Eatwell+)</span>
                 )}
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {systemRecipes.map((recipe) => (
-                  <SystemRecipeCard
-                    key={recipe._id}
-                    recipe={recipe}
-                    saved={isSaved(recipe._id)}
-                    onToggleSave={() => toggleSave(recipe._id)}
-                  />
-                ))}
-                {meals.map((meal) => (
-                  <MealCard
-                    key={meal.idMeal}
-                    meal={meal}
-                    saved={isSaved(meal.idMeal)}
-                    onToggleSave={() => toggleSave(meal.idMeal)}
-                  />
-                ))}
-              </div>
+
+              {systemRecipes.length > 0 && (
+                <section className="mb-8">
+                  <h2 className="font-display text-[15px] font-semibold text-[#221C16] mb-3">
+                    Eatwell+ ({systemRecipes.length})
+                  </h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {systemRecipes.map((recipe) => (
+                      <SystemRecipeCard
+                        key={recipe._id}
+                        recipe={recipe}
+                        saved={isSaved(recipe._id)}
+                        onToggleSave={() => toggleSave(recipe._id)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {maxMinutes == null && (
+                <section>
+                  <h2 className="font-display text-[15px] font-semibold text-[#221C16] mb-3">
+                    TheMealDB ({meals.length})
+                  </h2>
+                  {meals.length === 0 ? (
+                    <p className="text-center text-[#9C8878] text-sm py-10 bg-white/60 rounded-2xl border border-[#D6C9B4]/60">
+                      {selectedIngredients.length > 0
+                        ? "Сонгосон орцоор TheMealDB-д жор олдсонгүй."
+                        : "TheMealDB-д жор олдсонгүй."}
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {meals.map((meal) => (
+                        <MealCard
+                          key={meal.idMeal}
+                          meal={meal}
+                          saved={isSaved(meal.idMeal)}
+                          onToggleSave={() => toggleSave(meal.idMeal)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
             </>
           )}
         </div>

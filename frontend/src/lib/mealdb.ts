@@ -33,6 +33,28 @@ export interface MealDBFilterMeal {
 
 const BASE = "https://www.themealdb.com/api/json/v1/1";
 
+/** Max meals returned for category / ingredient browse lists */
+export const MEALDB_LIST_LIMIT = 100;
+
+function mealFromFilter(
+  partial: MealDBFilterMeal,
+  extras: Pick<MealDBRecipe, "strCategory" | "strArea"> = {
+    strCategory: "",
+    strArea: "",
+  },
+): MealDBRecipe {
+  return {
+    idMeal: partial.idMeal,
+    strMeal: partial.strMeal,
+    strMealThumb: partial.strMealThumb,
+    strCategory: extras.strCategory,
+    strArea: extras.strArea,
+    strInstructions: "",
+    strTags: null,
+    strYoutube: null,
+  };
+}
+
 export async function searchMeals(query: string): Promise<MealDBRecipe[]> {
   const res = await fetch(`${BASE}/search.php?s=${encodeURIComponent(query)}`);
   const data = await res.json();
@@ -41,18 +63,16 @@ export async function searchMeals(query: string): Promise<MealDBRecipe[]> {
 
 export async function getMealsByCategory(
   category: string,
+  limit = MEALDB_LIST_LIMIT,
 ): Promise<MealDBRecipe[]> {
-  // filter endpoint returns partial data, so we fetch full details
   const res = await fetch(
     `${BASE}/filter.php?c=${encodeURIComponent(category)}`,
   );
   const data = await res.json();
-  const meals: { idMeal: string }[] = data.meals ?? [];
-  // fetch up to 12 full details in parallel
-  const details = await Promise.all(
-    meals.slice(0, 12).map((m) => getMealById(m.idMeal)),
-  );
-  return details.filter(Boolean) as MealDBRecipe[];
+  const meals: MealDBFilterMeal[] = data.meals ?? [];
+  return meals
+    .slice(0, limit)
+    .map((m) => mealFromFilter(m, { strCategory: category, strArea: "" }));
 }
 
 export async function getMealById(id: string): Promise<MealDBRecipe | null> {
@@ -94,39 +114,84 @@ export async function filterMealsByIngredient(
   return data.meals ?? [];
 }
 
-export async function getMealsByIngredient(
-  ingredient: string,
-  limit = 12,
-): Promise<MealDBRecipe[]> {
-  const partial = await filterMealsByIngredient(ingredient);
-  const details = await Promise.all(
-    partial.slice(0, limit).map((m) => getMealById(m.idMeal)),
-  );
-  return details.filter(Boolean) as MealDBRecipe[];
+/** Merge filter results: recipes matching any ingredient, best overlap first. */
+export function mergeFilterMealsAny(
+  lists: MealDBFilterMeal[][],
+  limit = MEALDB_LIST_LIMIT,
+): MealDBRecipe[] {
+  const scored = new Map<string, { meal: MealDBFilterMeal; matches: number }>();
+
+  for (const list of lists) {
+    for (const meal of list) {
+      const existing = scored.get(meal.idMeal);
+      if (existing) existing.matches += 1;
+      else scored.set(meal.idMeal, { meal, matches: 1 });
+    }
+  }
+
+  return [...scored.values()]
+    .sort(
+      (a, b) =>
+        b.matches - a.matches ||
+        a.meal.strMeal.localeCompare(b.meal.strMeal),
+    )
+    .slice(0, limit)
+    .map(({ meal }) => mealFromFilter(meal));
 }
 
-/** Meals that contain every selected ingredient */
+/** Merge filter results: only recipes containing every ingredient. */
+export function mergeFilterMealsAll(
+  lists: MealDBFilterMeal[][],
+  limit = MEALDB_LIST_LIMIT,
+): MealDBRecipe[] {
+  if (lists.length === 0) return [];
+
+  const byId = new Map<string, MealDBFilterMeal>();
+  for (const meal of lists[0] ?? []) {
+    byId.set(meal.idMeal, meal);
+  }
+
+  const common = [...byId.values()].filter((meal) =>
+    lists.every((list) => list.some((m) => m.idMeal === meal.idMeal)),
+  );
+
+  return common.slice(0, limit).map((m) => mealFromFilter(m));
+}
+
+export async function getMealsByIngredient(
+  ingredient: string,
+  limit = MEALDB_LIST_LIMIT,
+): Promise<MealDBRecipe[]> {
+  const partial = await filterMealsByIngredient(ingredient);
+  return partial.slice(0, limit).map((m) => mealFromFilter(m));
+}
+
+/** Meals matching selected ingredients (any match; best overlap first). */
 export async function getMealsByIngredients(
   ingredients: string[],
-  limit = 12,
+  limit = MEALDB_LIST_LIMIT,
 ): Promise<MealDBRecipe[]> {
   if (ingredients.length === 0) return [];
 
-  const idSets = await Promise.all(
-    ingredients.map(async (ing) => {
-      const meals = await filterMealsByIngredient(ing);
-      return new Set(meals.map((m) => m.idMeal));
-    }),
+  const lists = await Promise.all(
+    ingredients.map((ing) => filterMealsByIngredient(ing)),
   );
 
-  const commonIds = [...idSets[0]!].filter((id) =>
-    idSets.every((set) => set.has(id)),
+  return mergeFilterMealsAny(lists, limit);
+}
+
+/** Meals that contain every selected ingredient (strict). */
+export async function getMealsByAllIngredients(
+  ingredients: string[],
+  limit = MEALDB_LIST_LIMIT,
+): Promise<MealDBRecipe[]> {
+  if (ingredients.length === 0) return [];
+
+  const lists = await Promise.all(
+    ingredients.map((ing) => filterMealsByIngredient(ing)),
   );
 
-  const details = await Promise.all(
-    commonIds.slice(0, limit).map((id) => getMealById(id)),
-  );
-  return details.filter(Boolean) as MealDBRecipe[];
+  return mergeFilterMealsAll(lists, limit);
 }
 
 // Extract ingredients list from a MealDB recipe

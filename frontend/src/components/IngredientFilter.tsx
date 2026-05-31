@@ -9,6 +9,8 @@ import {
   type IngredientGroup,
 } from "@/lib/ingredientGroups";
 import { useIngredientCatalog } from "@/hooks/useIngredientCatalog";
+import { searchIngredients, type USDAFood } from "@/lib/usda";
+import { usdaToMealDbMatch } from "@/lib/ingredientBridge";
 
 interface Props {
   selected: string[];
@@ -22,7 +24,10 @@ export function IngredientFilter({ selected, onChange }: Props) {
   const [expanded, setExpanded] = useState<Set<string>>(
     new Set(["meat", "vegetables"]),
   );
+  const [usdaResults, setUsdaResults] = useState<USDAFood[]>([]);
+  const [usdaSearching, setUsdaSearching] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const usdaDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
@@ -31,6 +36,33 @@ export function IngredientFilter({ selected, onChange }: Props) {
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
+
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) {
+      setUsdaResults([]);
+      setUsdaSearching(false);
+      if (usdaDebounce.current) clearTimeout(usdaDebounce.current);
+      return;
+    }
+
+    if (usdaDebounce.current) clearTimeout(usdaDebounce.current);
+    usdaDebounce.current = setTimeout(async () => {
+      setUsdaSearching(true);
+      try {
+        const foods = await searchIngredients(trimmed);
+        setUsdaResults(foods);
+      } catch {
+        setUsdaResults([]);
+      } finally {
+        setUsdaSearching(false);
+      }
+    }, 400);
+
+    return () => {
+      if (usdaDebounce.current) clearTimeout(usdaDebounce.current);
+    };
+  }, [query]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -44,6 +76,15 @@ export function IngredientFilter({ selected, onChange }: Props) {
     return groupCatalogItems(list);
   }, [allIngredients, query]);
 
+  const usdaMatches = useMemo(
+    () =>
+      usdaResults.map((food) => ({
+        food,
+        match: usdaToMealDbMatch(food, allIngredients),
+      })),
+    [usdaResults, allIngredients],
+  );
+
   useEffect(() => {
     if (query.trim()) {
       setExpanded(new Set(filtered.map((g) => g.group.id)));
@@ -56,7 +97,19 @@ export function IngredientFilter({ selected, onChange }: Props) {
       onChange(selected.filter((s) => s.toLowerCase() !== key.toLowerCase()));
     } else {
       onChange([...selected, key]);
+      setOpen(false);
+      setQuery("");
+      setUsdaResults([]);
     }
+  }
+
+  function selectUsdaFood(food: USDAFood) {
+    const match = usdaToMealDbMatch(food, allIngredients);
+    if (!match) return;
+    toggle(match.mealDbName);
+    setOpen(false);
+    setQuery("");
+    setUsdaResults([]);
   }
 
   function toggleGroup(group: IngredientGroup) {
@@ -67,6 +120,9 @@ export function IngredientFilter({ selected, onChange }: Props) {
       return next;
     });
   }
+
+  const queryActive = query.trim().length >= 2;
+  const catalogCount = filtered.reduce((n, g) => n + g.items.length, 0);
 
   return (
     <div ref={containerRef} className="relative shrink-0">
@@ -120,93 +176,162 @@ export function IngredientFilter({ selected, onChange }: Props) {
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Орц хайх..."
+                placeholder="USDA эсвэл орц хайх..."
                 autoFocus
                 className="w-full pl-8 pr-3 py-2 rounded-xl text-[13px] text-[#221C16]
                            border border-[#D6C9B4] focus:border-[#B84230] focus:outline-none"
               />
             </div>
+            <p className="text-[10px] text-[#9C8878] mt-1.5 px-0.5">
+              USDA-аас сонгоход TheMealDB жор автоматаар шүүнэ
+            </p>
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto sm:max-h-72">
-            {loading ? (
-              <p className="text-center text-[12px] text-[#9C8878] py-8">
-                Орц ачаалж байна...
-              </p>
-            ) : filtered.length === 0 ? (
-              <p className="text-center text-[12px] text-[#9C8878] py-8">
-                Орц олдсонгүй
-              </p>
-            ) : (
-              filtered.map(({ group, items }) => (
-                <div
-                  key={group.id}
-                  className="border-b border-[#EFE8DA] last:border-0"
-                >
-                  <button
-                    type="button"
-                    onClick={() => toggleGroup(group)}
-                    className="w-full flex items-center justify-between px-3.5 py-2.5
-                               bg-[#FAF7F0] hover:bg-[#EFE8DA] transition-colors"
-                  >
-                    <span className="text-[11px] font-bold text-[#5C4A3A] uppercase tracking-wider">
-                      {group.label}
-                    </span>
-                    <span className="text-[10px] text-[#9C8878] flex items-center gap-1">
-                      {items.length}
-                      <ChevronDown
-                        size={12}
-                        className={`transition-transform ${
-                          expanded.has(group.id) ? "rotate-180" : ""
-                        }`}
-                      />
-                    </span>
-                  </button>
-                  {(expanded.has(group.id) || query.trim()) && (
-                    <div className="py-1">
-                      {items.map((ing) => {
-                        const isSelected = selected.some(
-                          (s) =>
-                            s.toLowerCase() === ing.mealDbName.toLowerCase(),
-                        );
-                        return (
-                          <button
-                            key={ing.mealDbKey}
-                            type="button"
-                            onClick={() => toggle(ing.mealDbName)}
-                            className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-left
-                                        hover:bg-[#EFE8DA] transition-colors ${
-                                          isSelected ? "bg-[#B84230]/8" : ""
-                                        }`}
-                          >
-                            {ing.thumb ? (
-                              <Image
-                                src={ing.thumb}
-                                alt=""
-                                width={24}
-                                height={24}
-                                className="rounded-full object-cover shrink-0"
-                              />
-                            ) : (
-                              <span className="w-6 h-6 rounded-full bg-[#EFE8DA] shrink-0" />
-                            )}
-                            <span className="flex-1 text-[13px] text-[#221C16]">
-                              {ing.nameMn}
+            {queryActive && (
+              <div className="border-b border-[#EFE8DA]">
+                <div className="px-3.5 py-2 bg-[#FBF0E6]/60">
+                  <p className="text-[10px] font-bold text-[#B84230] uppercase tracking-wider">
+                    USDA хайлт
+                  </p>
+                </div>
+                {usdaSearching ? (
+                  <p className="text-center text-[12px] text-[#9C8878] py-4">
+                    USDA-аас хайж байна...
+                  </p>
+                ) : usdaMatches.length === 0 ? (
+                  <p className="text-center text-[12px] text-[#9C8878] py-4">
+                    USDA-д олдсонгүй
+                  </p>
+                ) : (
+                  <div className="py-1">
+                    {usdaMatches.map(({ food, match }) => {
+                      if (!match) return null;
+                      const isSelected = selected.some(
+                        (s) =>
+                          s.toLowerCase() === match.mealDbName.toLowerCase(),
+                      );
+                      return (
+                        <button
+                          key={food.fdcId}
+                          type="button"
+                          onClick={() => selectUsdaFood(food)}
+                          className={`w-full flex flex-col gap-0.5 px-3.5 py-2.5 text-left
+                                      hover:bg-[#EFE8DA] transition-colors ${
+                                        isSelected ? "bg-[#B84230]/8" : ""
+                                      }`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <span className="flex-1 text-[13px] font-semibold text-[#221C16] line-clamp-2">
+                              {food.description}
                             </span>
                             {isSelected && (
                               <Check
                                 size={14}
-                                className="text-[#B84230] shrink-0"
+                                className="text-[#B84230] shrink-0 mt-0.5"
                               />
                             )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              ))
+                          </div>
+                          <p className="text-[11px] text-[#9C8878]">
+                            {food.nutrients.calories.toFixed(0)} ккал ·{" "}
+                            {food.nutrients.proteinG.toFixed(1)}г уураг / 100г
+                          </p>
+                          <p className="text-[11px] text-[#B85E1A] font-medium">
+                            → {match.nameMn} ({match.mealDbName})
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             )}
+
+            <div>
+              <div className="px-3.5 py-2 bg-[#FAF7F0] border-b border-[#EFE8DA]">
+                <p className="text-[10px] font-bold text-[#5C4A3A] uppercase tracking-wider">
+                  TheMealDB орц{queryActive ? ` (${catalogCount})` : ""}
+                </p>
+              </div>
+              {loading ? (
+                <p className="text-center text-[12px] text-[#9C8878] py-8">
+                  Орц ачаалж байна...
+                </p>
+              ) : filtered.length === 0 ? (
+                <p className="text-center text-[12px] text-[#9C8878] py-8">
+                  Орц олдсонгүй
+                </p>
+              ) : (
+                filtered.map(({ group, items }) => (
+                  <div
+                    key={group.id}
+                    className="border-b border-[#EFE8DA] last:border-0"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(group)}
+                      className="w-full flex items-center justify-between px-3.5 py-2.5
+                                 bg-[#FAF7F0] hover:bg-[#EFE8DA] transition-colors"
+                    >
+                      <span className="text-[11px] font-bold text-[#5C4A3A] uppercase tracking-wider">
+                        {group.label}
+                      </span>
+                      <span className="text-[10px] text-[#9C8878] flex items-center gap-1">
+                        {items.length}
+                        <ChevronDown
+                          size={12}
+                          className={`transition-transform ${
+                            expanded.has(group.id) ? "rotate-180" : ""
+                          }`}
+                        />
+                      </span>
+                    </button>
+                    {(expanded.has(group.id) || query.trim()) && (
+                      <div className="py-1">
+                        {items.map((ing) => {
+                          const isSelected = selected.some(
+                            (s) =>
+                              s.toLowerCase() === ing.mealDbName.toLowerCase(),
+                          );
+                          return (
+                            <button
+                              key={ing.mealDbKey}
+                              type="button"
+                              onClick={() => toggle(ing.mealDbName)}
+                              className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-left
+                                          hover:bg-[#EFE8DA] transition-colors ${
+                                            isSelected ? "bg-[#B84230]/8" : ""
+                                          }`}
+                            >
+                              {ing.thumb ? (
+                                <Image
+                                  src={ing.thumb}
+                                  alt=""
+                                  width={24}
+                                  height={24}
+                                  className="rounded-full object-cover shrink-0"
+                                />
+                              ) : (
+                                <span className="w-6 h-6 rounded-full bg-[#EFE8DA] shrink-0" />
+                              )}
+                              <span className="flex-1 text-[13px] text-[#221C16]">
+                                {ing.nameMn}
+                              </span>
+                              {isSelected && (
+                                <Check
+                                  size={14}
+                                  className="text-[#B84230] shrink-0"
+                                />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
           </div>
         </>

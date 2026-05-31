@@ -167,7 +167,7 @@ export function HomeFeed() {
       setSystemLoading(true);
       recipeApi
         .list({
-          limit: 12,
+          limit: 50,
           q: searchQ.trim() || undefined,
           ingredients:
             selectedIngredients.length > 0 ? selectedIngredients : undefined,
@@ -274,7 +274,7 @@ export function HomeFeed() {
                   </h2>
                   {!loading && (
                     <span className="text-[12px] text-[#9C8878] shrink-0">
-                      {meals.length} жор
+                      {meals.length + (featured ? 1 : 0)} жор
                     </span>
                   )}
                 </div>

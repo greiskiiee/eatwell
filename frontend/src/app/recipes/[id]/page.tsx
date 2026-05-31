@@ -17,11 +17,9 @@ import { useUser } from "@/context/UserContext";
 import { useSavedRecipes } from "@/context/SavedRecipesContext";
 import { UserAvatar } from "@/components/UserAvatar";
 import { AllergenAlertBanner } from "@/components/AllergenAlertBanner";
-import {
-  getMatchingAllergens,
-  lineContainsAllergen,
-} from "@/lib/allergens";
+import { getMatchingAllergens, lineContainsAllergen } from "@/lib/allergens";
 import { useIngredientLabels } from "@/hooks/useIngredientLabels";
+import { translateToMongolian } from "@/lib/translate";
 import {
   Bookmark,
   ChevronLeft,
@@ -36,6 +34,14 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { PurchaseRecipeModal } from "@/components/PurchaseRecipeModal";
+
+type RecipeTranslation = {
+  title: string;
+  ingredients: string[];
+  instructions: string[];
+};
+
+const TRANSLATION_CACHE_PREFIX = "recipe_mn_";
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 function parseInstructions(raw: string): string[] {
@@ -78,8 +84,7 @@ function estimateNutrition(ingredientCount: number): NutritionDisplay {
     fat: Math.round(base * 0.22),
     fiber: Math.round(base * 0.08),
     sodium: Math.round(base * 4.2),
-    sourceNote:
-      "* Орцын тооноос тооцоолсон тул зөрүү гарч болно. Яг утгыг мэдэхийн тулд орцын шошгыг харна уу.",
+    sourceNote: "* Орцын тооноос тооцоолсон тул зөрүү гарч болно. ",
   };
 }
 
@@ -118,7 +123,11 @@ function displayFromMeal(meal: MealDBRecipe): RecipeDisplay {
     coverImage: meal.strMealThumb,
     metaPrimary: meal.strCategory,
     metaSecondary: meal.strArea,
-    tags: meal.strTags?.split(",").map((t) => t.trim()).filter(Boolean) ?? [],
+    tags:
+      meal.strTags
+        ?.split(",")
+        .map((t) => t.trim())
+        .filter(Boolean) ?? [],
     ingredients,
     steps: parseInstructions(meal.strInstructions),
     nutrition: estimateNutrition(ingredients.length),
@@ -139,13 +148,13 @@ function displayFromSystem(recipe: TechnologistRecipe): RecipeDisplay {
     stats.push({ icon: Clock, label: `${recipe.prepTimeMinutes} мин бэлтгэх` });
   }
   if (recipe.cookTimeMinutes != null) {
-    stats.push({ icon: Flame, label: `${recipe.cookTimeMinutes} мин готов` });
+    stats.push({ icon: Flame, label: `${recipe.cookTimeMinutes} мин хийх` });
   }
   if (recipe.servings != null) {
     stats.push({ icon: Users, label: `${recipe.servings} хүн` });
   }
   if (stats.length === 0) {
-    stats.push({ icon: Tag, label: `${ingredients.length} орц` });
+    stats.push({ icon: Tag, label: `${ingredients.length} төрлийн орц` });
   }
 
   return {
@@ -214,6 +223,10 @@ export default function RecipePage() {
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [commentError, setCommentError] = useState("");
   const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const [translation, setTranslation] = useState<RecipeTranslation | null>(
+    null,
+  );
+  const [translating, setTranslating] = useState(false);
 
   const ingredientLines = useMemo(() => {
     if (meal) return extractIngredients(meal);
@@ -227,6 +240,57 @@ export default function RecipePage() {
     [ingredientLines, userAllergens],
   );
   const { labelFor } = useIngredientLabels(matchedAllergens);
+
+  useEffect(() => {
+    if (!meal) {
+      setTranslation(null);
+      setTranslating(false);
+      return;
+    }
+
+    const cacheKey = TRANSLATION_CACHE_PREFIX + meal.idMeal;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        setTranslation(JSON.parse(cached) as RecipeTranslation);
+        return;
+      } catch {
+        localStorage.removeItem(cacheKey);
+      }
+    }
+
+    let cancelled = false;
+    setTranslating(true);
+
+    const ingredients = extractIngredients(meal);
+    const steps = parseInstructions(meal.strInstructions);
+
+    Promise.all([
+      translateToMongolian(meal.strMeal),
+      Promise.all(ingredients.map((ing) => translateToMongolian(ing))),
+      Promise.all(steps.map((step) => translateToMongolian(step))),
+    ])
+      .then(([title, translatedIngredients, translatedSteps]) => {
+        if (cancelled) return;
+        const result: RecipeTranslation = {
+          title,
+          ingredients: translatedIngredients,
+          instructions: translatedSteps,
+        };
+        setTranslation(result);
+        localStorage.setItem(cacheKey, JSON.stringify(result));
+      })
+      .catch(() => {
+        // silently fail — UI shows original English
+      })
+      .finally(() => {
+        if (!cancelled) setTranslating(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [meal?.idMeal]);
 
   useEffect(() => {
     setLoading(true);
@@ -315,6 +379,9 @@ export default function RecipePage() {
     ? displayFromMeal(meal)
     : displayFromSystem(systemRecipe!);
   const { ingredients, steps, nutrition } = display;
+  const title = translation?.title ?? display.title;
+  const shownIngredients = translation?.ingredients ?? ingredients;
+  const shownSteps = translation?.instructions ?? steps;
   const youtubeId = youtubeIdFromUrl(display.youtubeUrl);
   const isLocked = Boolean(systemRecipe?.locked);
   const premiumPrice = systemRecipe?.price ?? 0;
@@ -340,7 +407,7 @@ export default function RecipePage() {
         {display.coverImage ? (
           <Image
             src={display.coverImage}
-            alt={display.title}
+            alt={title}
             className="w-full h-full object-cover"
             width={1200}
             height={440}
@@ -392,8 +459,11 @@ export default function RecipePage() {
             )}
           </div>
           <h1 className="font-display text-[1.5rem] sm:text-[2rem] md:text-[2.4rem] font-semibold text-[#FFFDF8] leading-tight max-w-2xl">
-            {display.title}
+            {title}
           </h1>
+          {translating && meal && (
+            <p className="text-[11px] text-white/50 mt-1.5">Орчуулж байна…</p>
+          )}
           {display.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-3">
               {display.tags.map((tag) => (
@@ -517,203 +587,203 @@ export default function RecipePage() {
           </div>
         ) : (
           <>
-        {/* ── Ingredients tab ── */}
-        {activeTab === "ingredients" && (
-          <div
-            className="bg-white border border-[#D6C9B4]/60 rounded-2xl overflow-hidden
-                          shadow-[0_2px_12px_rgba(34,28,22,0.06)]"
-          >
-            {ingredients.map((ing, i) => {
-              const isAllergen = userAllergens.some((a) =>
-                lineContainsAllergen(ing, a),
-              );
-              return (
-                <div
-                  key={i}
-                  className={[
-                    "flex items-center gap-3 px-5 py-3.5 text-[13.5px]",
-                    i !== ingredients.length - 1
-                      ? "border-b border-[#EFE8DA]"
-                      : "",
-                    isAllergen ? "bg-[#FEF2F2]" : "",
-                  ].join(" ")}
-                >
-                  <span
-                    className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0 ${
-                      isAllergen
-                        ? "bg-[#DC2626] text-white"
-                        : "bg-[#F5E6E2] text-[#B84230]"
-                    }`}
-                  >
-                    {i + 1}
-                  </span>
-                  <span
-                    className={`font-medium ${
-                      isAllergen ? "text-[#991B1B]" : "text-[#221C16]"
-                    }`}
-                  >
-                    {ing}
-                    {isAllergen && (
-                      <span className="ml-2 text-[10px] font-bold uppercase text-[#DC2626]">
-                        харшил
-                      </span>
-                    )}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* ── Instructions tab ── */}
-        {activeTab === "instructions" && (
-          <div
-            className="bg-white border border-[#D6C9B4]/60 rounded-2xl p-6
-                          shadow-[0_2px_12px_rgba(34,28,22,0.06)] space-y-5"
-          >
-            {steps.map((step, i) => (
-              <div key={i} className="flex gap-3.5">
-                <span
-                  className="mt-0.5 w-5 h-5 rounded-full bg-[#F5E6E2] text-[#B84230] text-[10px]
-                               font-bold flex items-center justify-center shrink-0"
-                >
-                  {i + 1}
-                </span>
-                <p className="text-[13.5px] text-[#5C4A3A] leading-relaxed">
-                  {step}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* ── Nutrition tab ── */}
-        {activeTab === "nutrition" && (
-          <div
-            className="bg-white border border-[#D6C9B4]/60 rounded-2xl overflow-hidden
-                          shadow-[0_2px_12px_rgba(34,28,22,0.06)]"
-          >
-            <div className="px-5 py-4 border-b border-[#EFE8DA] flex items-center justify-between">
-              <p className="text-[13px] font-bold text-[#221C16]">
-                Нэг порцны тэжээллэг чанар
-              </p>
-              <span className="text-[11px] text-[#9C8878] bg-[#EFE8DA] px-2.5 py-1 rounded-full">
-                {systemRecipe ? "Тооцоолсон" : "Тооцоолсон утга"}
-              </span>
-            </div>
-
-            {/* Calorie highlight */}
-            <div className="flex items-center gap-4 px-5 py-5 border-b border-[#EFE8DA] bg-[#FBF0E6]/50">
+            {/* ── Ingredients tab ── */}
+            {activeTab === "ingredients" && (
               <div
-                className="w-14 h-14 rounded-full bg-[#F5E6E2] border-2 border-[#B84230]/20
-                              flex flex-col items-center justify-center shrink-0"
+                className="bg-white border border-[#D6C9B4]/60 rounded-2xl overflow-hidden
+                          shadow-[0_2px_12px_rgba(34,28,22,0.06)]"
               >
-                <span className="text-[18px] font-bold text-[#B84230] leading-none">
-                  {nutrition.calories}
-                </span>
-                <span className="text-[9px] font-semibold text-[#B84230]/60 uppercase tracking-wide">
-                  ккал
-                </span>
-              </div>
-              <div>
-                <p className="text-[13px] font-semibold text-[#221C16]">
-                  Нийт калори
-                </p>
-                <p className="text-[12px] text-[#9C8878] mt-0.5">
-                  Дундаж хоолны 2000 ккал-ын{" "}
-                  {Math.round((nutrition.calories / 2000) * 100)}%
-                </p>
-                <div className="mt-2 h-1.5 w-48 bg-[#EFE8DA] rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-[#B84230] rounded-full"
-                    style={{
-                      width: `${Math.min((nutrition.calories / 2000) * 100, 100)}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Macro rows */}
-            {[
-              {
-                label: "Уураг",
-                value: nutrition.protein,
-                unit: "г",
-                color: "#4A90B8",
-                pct: Math.round(
-                  ((nutrition.protein * 4) / nutrition.calories) * 100,
-                ),
-              },
-              {
-                label: "Нүүрс ус",
-                value: nutrition.carbs,
-                unit: "г",
-                color: "#B8884A",
-                pct: Math.round(
-                  ((nutrition.carbs * 4) / nutrition.calories) * 100,
-                ),
-              },
-              {
-                label: "Өөх тос",
-                value: nutrition.fat,
-                unit: "г",
-                color: "#B84A4A",
-                pct: Math.round(
-                  ((nutrition.fat * 9) / nutrition.calories) * 100,
-                ),
-              },
-              {
-                label: "Эслэг",
-                value: nutrition.fiber,
-                unit: "г",
-                color: "#4AB87A",
-                pct: null,
-              },
-              {
-                label: "Натри",
-                value: nutrition.sodium,
-                unit: "мг",
-                color: "#9C8878",
-                pct: null,
-              },
-            ].map(({ label, value, unit, color, pct }, i, arr) => (
-              <div
-                key={label}
-                className={[
-                  "flex items-center gap-3 px-5 py-3.5",
-                  i !== arr.length - 1 ? "border-b border-[#EFE8DA]" : "",
-                ].join(" ")}
-              >
-                <span
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: color }}
-                />
-                <span className="text-[13.5px] text-[#221C16] font-medium flex-1">
-                  {label}
-                </span>
-                {pct !== null && (
-                  <div className="flex-1 max-w-[120px] h-1.5 bg-[#EFE8DA] rounded-full overflow-hidden">
+                {shownIngredients.map((ing, i) => {
+                  const isAllergen = userAllergens.some((a) =>
+                    lineContainsAllergen(ingredients[i] ?? ing, a),
+                  );
+                  return (
                     <div
-                      className="h-full rounded-full"
-                      style={{ width: `${pct}%`, backgroundColor: color }}
-                    />
-                  </div>
-                )}
-                <span className="text-[13px] font-semibold text-[#5C4A3A] tabular-nums">
-                  {value}
-                  <span className="text-[11px] font-normal text-[#9C8878] ml-0.5">
-                    {unit}
-                  </span>
-                </span>
+                      key={i}
+                      className={[
+                        "flex items-center gap-3 px-5 py-3.5 text-[13.5px]",
+                        i !== shownIngredients.length - 1
+                          ? "border-b border-[#EFE8DA]"
+                          : "",
+                        isAllergen ? "bg-[#FEF2F2]" : "",
+                      ].join(" ")}
+                    >
+                      <span
+                        className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0 ${
+                          isAllergen
+                            ? "bg-[#DC2626] text-white"
+                            : "bg-[#F5E6E2] text-[#B84230]"
+                        }`}
+                      >
+                        {i + 1}
+                      </span>
+                      <span
+                        className={`font-medium ${
+                          isAllergen ? "text-[#991B1B]" : "text-[#221C16]"
+                        }`}
+                      >
+                        {ing}
+                        {isAllergen && (
+                          <span className="ml-2 text-[10px] font-bold uppercase text-[#DC2626]">
+                            харшил
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
+            )}
 
-            <p className="px-5 py-3 text-[11px] text-[#9C8878] bg-[#EFE8DA]/40 border-t border-[#EFE8DA]">
-              {nutrition.sourceNote}
-            </p>
-          </div>
-        )}
+            {/* ── Instructions tab ── */}
+            {activeTab === "instructions" && (
+              <div
+                className="bg-white border border-[#D6C9B4]/60 rounded-2xl p-6
+                          shadow-[0_2px_12px_rgba(34,28,22,0.06)] space-y-5"
+              >
+                {shownSteps.map((step, i) => (
+                  <div key={i} className="flex gap-3.5">
+                    <span
+                      className="mt-0.5 w-5 h-5 rounded-full bg-[#F5E6E2] text-[#B84230] text-[10px]
+                               font-bold flex items-center justify-center shrink-0"
+                    >
+                      {i + 1}
+                    </span>
+                    <p className="text-[13.5px] text-[#5C4A3A] leading-relaxed">
+                      {step}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ── Nutrition tab ── */}
+            {activeTab === "nutrition" && (
+              <div
+                className="bg-white border border-[#D6C9B4]/60 rounded-2xl overflow-hidden
+                          shadow-[0_2px_12px_rgba(34,28,22,0.06)]"
+              >
+                <div className="px-5 py-4 border-b border-[#EFE8DA] flex items-center justify-between">
+                  <p className="text-[13px] font-bold text-[#221C16]">
+                    Нэг порцны тэжээллэг чанар
+                  </p>
+                  <span className="text-[11px] text-[#9C8878] bg-[#EFE8DA] px-2.5 py-1 rounded-full">
+                    {systemRecipe ? "Тооцоолсон" : "Тооцоолсон утга"}
+                  </span>
+                </div>
+
+                {/* Calorie highlight */}
+                <div className="flex items-center gap-4 px-5 py-5 border-b border-[#EFE8DA] bg-[#FBF0E6]/50">
+                  <div
+                    className="w-14 h-14 rounded-full bg-[#F5E6E2] border-2 border-[#B84230]/20
+                              flex flex-col items-center justify-center shrink-0"
+                  >
+                    <span className="text-[18px] font-bold text-[#B84230] leading-none">
+                      {nutrition.calories}
+                    </span>
+                    <span className="text-[9px] font-semibold text-[#B84230]/60 uppercase tracking-wide">
+                      ккал
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-semibold text-[#221C16]">
+                      Нийт калори
+                    </p>
+                    <p className="text-[12px] text-[#9C8878] mt-0.5">
+                      Дундаж хоолны 2000 ккал-ын{" "}
+                      {Math.round((nutrition.calories / 2000) * 100)}%
+                    </p>
+                    <div className="mt-2 h-1.5 w-48 bg-[#EFE8DA] rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[#B84230] rounded-full"
+                        style={{
+                          width: `${Math.min((nutrition.calories / 2000) * 100, 100)}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Macro rows */}
+                {[
+                  {
+                    label: "Уураг",
+                    value: nutrition.protein,
+                    unit: "г",
+                    color: "#4A90B8",
+                    pct: Math.round(
+                      ((nutrition.protein * 4) / nutrition.calories) * 100,
+                    ),
+                  },
+                  {
+                    label: "Нүүрс ус",
+                    value: nutrition.carbs,
+                    unit: "г",
+                    color: "#B8884A",
+                    pct: Math.round(
+                      ((nutrition.carbs * 4) / nutrition.calories) * 100,
+                    ),
+                  },
+                  {
+                    label: "Өөх тос",
+                    value: nutrition.fat,
+                    unit: "г",
+                    color: "#B84A4A",
+                    pct: Math.round(
+                      ((nutrition.fat * 9) / nutrition.calories) * 100,
+                    ),
+                  },
+                  {
+                    label: "Эслэг",
+                    value: nutrition.fiber,
+                    unit: "г",
+                    color: "#4AB87A",
+                    pct: null,
+                  },
+                  {
+                    label: "Натри",
+                    value: nutrition.sodium,
+                    unit: "мг",
+                    color: "#9C8878",
+                    pct: null,
+                  },
+                ].map(({ label, value, unit, color, pct }, i, arr) => (
+                  <div
+                    key={label}
+                    className={[
+                      "flex items-center gap-3 px-5 py-3.5",
+                      i !== arr.length - 1 ? "border-b border-[#EFE8DA]" : "",
+                    ].join(" ")}
+                  >
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: color }}
+                    />
+                    <span className="text-[13.5px] text-[#221C16] font-medium flex-1">
+                      {label}
+                    </span>
+                    {pct !== null && (
+                      <div className="flex-1 max-w-[120px] h-1.5 bg-[#EFE8DA] rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full"
+                          style={{ width: `${pct}%`, backgroundColor: color }}
+                        />
+                      </div>
+                    )}
+                    <span className="text-[13px] font-semibold text-[#5C4A3A] tabular-nums">
+                      {value}
+                      <span className="text-[11px] font-normal text-[#9C8878] ml-0.5">
+                        {unit}
+                      </span>
+                    </span>
+                  </div>
+                ))}
+
+                <p className="px-5 py-3 text-[11px] text-[#9C8878] bg-[#EFE8DA]/40 border-t border-[#EFE8DA]">
+                  {nutrition.sourceNote}
+                </p>
+              </div>
+            )}
           </>
         )}
 
@@ -764,29 +834,29 @@ export default function RecipePage() {
               </p>
             ) : (
               comments.map((c) => (
-              <div
-                key={c._id}
-                className="bg-white border border-[#D6C9B4]/60 rounded-2xl px-5 py-4
+                <div
+                  key={c._id}
+                  className="bg-white border border-[#D6C9B4]/60 rounded-2xl px-5 py-4
                            shadow-[0_1px_6px_rgba(34,28,22,0.05)]"
-              >
-                <div className="flex items-center gap-2.5 mb-2">
-                  <UserAvatar
-                    name={c.author.name}
-                    avatarUrl={c.author.avatarUrl}
-                    size={28}
-                  />
-                  <span className="text-[13px] font-semibold text-[#221C16]">
-                    {c.author.name}
-                  </span>
-                  <span className="ml-auto text-[11px] text-[#9C8878] shrink-0">
-                    {formatCommentDate(c.createdAt)}
-                  </span>
+                >
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <UserAvatar
+                      name={c.author.name}
+                      avatarUrl={c.author.avatarUrl}
+                      size={28}
+                    />
+                    <span className="text-[13px] font-semibold text-[#221C16]">
+                      {c.author.name}
+                    </span>
+                    <span className="ml-auto text-[11px] text-[#9C8878] shrink-0">
+                      {formatCommentDate(c.createdAt)}
+                    </span>
+                  </div>
+                  <p className="text-[13px] text-[#5C4A3A] leading-relaxed whitespace-pre-wrap">
+                    {c.body}
+                  </p>
                 </div>
-                <p className="text-[13px] text-[#5C4A3A] leading-relaxed whitespace-pre-wrap">
-                  {c.body}
-                </p>
-              </div>
-            ))
+              ))
             )}
           </div>
 
@@ -821,7 +891,9 @@ export default function RecipePage() {
                   submitComment();
               }}
               placeholder={
-                user ? "Сэтгэгдэл бичих..." : "Сэтгэгдэл бичихийн тулд нэвтэрнэ үү..."
+                user
+                  ? "Сэтгэгдэл бичих..."
+                  : "Сэтгэгдэл бичихийн тулд нэвтэрнэ үү..."
               }
               rows={3}
               disabled={!user || commentSubmitting}
