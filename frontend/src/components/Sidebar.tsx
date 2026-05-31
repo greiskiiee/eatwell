@@ -2,7 +2,15 @@
 
 import { useAuth, useUser } from "@/context/UserContext";
 import { NAV_ITEMS } from "@/lib/constants";
-import { BookOpen, Menu, Settings, X, UserPen, LogOut, BarChart3 } from "lucide-react";
+import {
+  BookOpen,
+  Menu,
+  Settings,
+  X,
+  UserPen,
+  LogOut,
+  BarChart3,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -81,23 +89,23 @@ export const Sidebar = () => {
               ? pathname === "/home" || pathname === "/"
               : pathname === href || pathname.startsWith(`${href}/`);
           return (
-          <Link
-            key={label}
-            href={href}
-            onClick={() => setOpen(false)}
-            className={[
-              "flex items-center gap-3 w-full px-3 py-2.25 rounded-xl text-[13.5px] font-medium transition-colors",
-              active
-                ? "bg-[#F5E6E2] text-[#B84230]"
-                : "text-[#5C4A3A] hover:bg-[#EFE8DA]",
-            ].join(" ")}
-          >
-            <Icon
-              size={18}
-              className={active ? "text-[#B84230]" : "text-[#9C8878]"}
-            />
-            {label}
-          </Link>
+            <Link
+              key={label}
+              href={href}
+              onClick={() => setOpen(false)}
+              className={[
+                "flex items-center gap-3 w-full px-3 py-2.25 rounded-xl text-[13.5px] font-medium transition-colors",
+                active
+                  ? "bg-[#F5E6E2] text-[#B84230]"
+                  : "text-[#5C4A3A] hover:bg-[#EFE8DA]",
+              ].join(" ")}
+            >
+              <Icon
+                size={18}
+                className={active ? "text-[#B84230]" : "text-[#9C8878]"}
+              />
+              {label}
+            </Link>
           );
         })}
 
@@ -115,7 +123,9 @@ export const Sidebar = () => {
             >
               <BookOpen
                 size={18}
-                className={myRecipesActive ? "text-[#B84230]" : "text-[#9C8878]"}
+                className={
+                  myRecipesActive ? "text-[#B84230]" : "text-[#9C8878]"
+                }
               />
               Миний жорууд
             </Link>
@@ -131,7 +141,9 @@ export const Sidebar = () => {
             >
               <BarChart3
                 size={18}
-                className={analyticsActive ? "text-[#B84230]" : "text-[#9C8878]"}
+                className={
+                  analyticsActive ? "text-[#B84230]" : "text-[#9C8878]"
+                }
               />
               Аналитик
             </Link>
@@ -203,7 +215,7 @@ export const Sidebar = () => {
           </p>
           <p className="text-[11px] text-[#9C8878]">
             {user?.role === "technologist"
-              ? "Хоол технологич"
+              ? "Хүнсний технологич"
               : user?.role === "admin"
                 ? "Админ"
                 : user
@@ -295,8 +307,6 @@ export const Sidebar = () => {
       >
         {content}
       </div>
-
     </>
   );
 };
-
