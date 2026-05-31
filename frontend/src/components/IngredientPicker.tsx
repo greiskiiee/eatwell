@@ -20,7 +20,7 @@ interface Props {
 
 export function IngredientPicker({ value, onChange }: Props) {
   const [query, setQuery] = useState("");
-  const [match, setMatch] = useState<import("@/lib/usda").USDAFood | null>(null);
+  const [results, setResults] = useState<import("@/lib/usda").USDAFood[]>([]);
   const [searching, setSearching] = useState(false);
   const [pendingFood, setPendingFood] = useState<import("@/lib/usda").USDAFood | null>(null);
   const [amount, setAmount] = useState<number | "">(100);
@@ -38,7 +38,7 @@ export function IngredientPicker({ value, onChange }: Props) {
       setSearching(true);
       try {
         const foods = await searchIngredients(query);
-        setMatch(foods[0] ?? null);
+        setResults(foods);
       } finally {
         setSearching(false);
       }
@@ -54,7 +54,7 @@ export function IngredientPicker({ value, onChange }: Props) {
   function selectFood(food: import("@/lib/usda").USDAFood) {
     const existing = value.find((e) => e.food.fdcId === food.fdcId);
     setPendingFood(food);
-    setMatch(food);
+    setResults([]);
     setQuery(food.description);
     setAmount(existing?.amount ?? (unit === "kg" ? 1 : unit === "piece" ? 1 : 100));
     setUnit(existing?.unit ?? "g");
@@ -77,7 +77,7 @@ export function IngredientPicker({ value, onChange }: Props) {
       onChange([...value, entry]);
     }
     setPendingFood(null);
-    setMatch(null);
+    setResults([]);
     setQuery("");
     setAmount(100);
     setUnit("g");
@@ -104,8 +104,10 @@ export function IngredientPicker({ value, onChange }: Props) {
             ref={inputRef}
             value={query}
             onChange={(e) => {
-              setQuery(e.target.value);
+              const next = e.target.value;
+              setQuery(next);
               setPendingFood(null);
+              if (next.trim().length < 2) setResults([]);
             }}
             placeholder="Орц хайх... (жнь: chicken, rice)"
             className="w-full pl-8 pr-4 py-2.5 bg-white rounded-xl text-[13.5px] text-[#221C16]
@@ -156,27 +158,34 @@ export function IngredientPicker({ value, onChange }: Props) {
         )}
       </div>
 
-      {queryActive && !pendingFood && match && (
-        <button
-          type="button"
-          onClick={() => selectFood(match)}
-          className="w-full text-left px-3.5 py-3 bg-white rounded-xl border border-[#D6C9B4]
-                     hover:border-[#B84230] hover:bg-[#FBF0E6]/40 transition-colors"
-        >
-          <p className="text-[10px] font-bold text-[#9C8878] uppercase tracking-wider mb-1">
+      {queryActive && !pendingFood && results.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-bold text-[#9C8878] uppercase tracking-wider px-1">
             Хайлтын үр дүн
           </p>
-          <p className="text-[13px] font-semibold text-[#221C16] line-clamp-2">
-            {match.description}
-          </p>
-          <p className="text-[11px] text-[#9C8878] mt-0.5">
-            {match.nutrients.calories.toFixed(0)} ккал ·{" "}
-            {match.nutrients.proteinG.toFixed(1)}г уураг — 100г тутамд
-          </p>
-        </button>
+          <div className="max-h-52 overflow-y-auto space-y-1.5 rounded-xl">
+            {results.map((food) => (
+              <button
+                key={food.fdcId}
+                type="button"
+                onClick={() => selectFood(food)}
+                className="w-full text-left px-3.5 py-2.5 bg-white rounded-xl border border-[#D6C9B4]
+                           hover:border-[#B84230] hover:bg-[#FBF0E6]/40 transition-colors"
+              >
+                <p className="text-[13px] font-semibold text-[#221C16] line-clamp-2">
+                  {food.description}
+                </p>
+                <p className="text-[11px] text-[#9C8878] mt-0.5">
+                  {food.nutrients.calories.toFixed(0)} ккал ·{" "}
+                  {food.nutrients.proteinG.toFixed(1)}г уураг — 100г тутамд
+                </p>
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
-      {queryActive && !showSearching && !match && (
+      {queryActive && !showSearching && results.length === 0 && (
         <p className="text-[12px] text-[#9C8878] px-1">Орц олдсонгүй</p>
       )}
 
