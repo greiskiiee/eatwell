@@ -22,22 +22,46 @@ import { productsRouter } from "./routes/products";
 export function createApp() {
   const app = express();
 
-  const allowedOrigins = [
-    "http://localhost:3000",
-    process.env.CORS_ORIGIN,
-    process.env.FRONTEND_URL,
-  ].filter((o): o is string => Boolean(o));
+  function parseOriginList(value?: string) {
+    if (!value) return [];
+    return value
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  const allowedOrigins = new Set(
+    [
+      "http://localhost:3000",
+      "https://eatwell-liart.vercel.app",
+      ...parseOriginList(process.env.CORS_ORIGIN),
+      ...parseOriginList(process.env.FRONTEND_URL),
+    ].filter(Boolean),
+  );
+
+  function isAllowedOrigin(origin?: string) {
+    if (!origin) return true; // server-to-server / curl / same-origin
+    if (allowedOrigins.has(origin)) return true;
+
+    // Optional: allow Vercel preview deployments if enabled
+    if (
+      process.env.ALLOW_VERCEL_PREVIEWS === "true" &&
+      /^https:\/\/eatwell-.*\.vercel\.app$/i.test(origin)
+    ) {
+      return true;
+    }
+    return false;
+  }
 
   app.use(
     cors({
       origin(origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
-          callback(null, true);
-        } else {
-          callback(new Error("Not allowed by CORS"));
-        }
+        // IMPORTANT: don't throw on disallowed origins; that would skip CORS headers
+        // and surface as a confusing browser CORS + 5xx combo.
+        callback(null, isAllowedOrigin(origin));
       },
       credentials: true,
+      optionsSuccessStatus: 204,
     }),
   );
   app.use(express.json());
