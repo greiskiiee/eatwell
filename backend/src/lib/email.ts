@@ -36,7 +36,7 @@ export async function sendTechnologistApprovalEmail(params: {
     : "Eatwell+ — Хүнсний технологичийн бүртгэлийн хүсэлт";
 
   const text = params.approved
-    ? `Сайн байна уу, ${params.name}!\n\nТаны хүнсний технологичийн бүртгэл админаар батлагдлаа. Одоо technologist нэвтрэх хуудаснаас нэвтэрч жор нэмж, засварлаж болно.\n\nEatwell+ баг`
+    ? `Сайн байна уу, ${params.name}!\n\nТаны хүнсний технологичийн бүртгэл админаар батлагдлаа. Одоо веб хуудсаар нэвтэрч жор нэмж, засварлаж болно.\n\nEatwell+ баг`
     : `Сайн байна уу, ${params.name}!\n\nУучлаарай, таны хүнсний технологичийн бүртгэлийн хүсэлтийг админ зөвшөөрөөгүй.${params.rejectionReason ? `\n\nШалтгаан: ${params.rejectionReason}` : ""}\n\nШинээр баталгаажуулах баримт илгээж дахин бүртгүүлэх боломжтой.\n\nEatwell+ баг`;
 
   await transporter.sendMail({ from, to: params.to, subject, text });

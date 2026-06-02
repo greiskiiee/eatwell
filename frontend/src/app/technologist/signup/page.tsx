@@ -174,7 +174,7 @@ export default function TechnologistSignupPage() {
             <input
               value={credentials}
               onChange={(e) => setCredentials(e.target.value)}
-              placeholder="жнь: ХХИС, Хоол технологич"
+              placeholder="жнь: ХХИС, Хүнсний технологич"
               className="w-full px-4 py-3 bg-[#F5F0E8] rounded-xl text-sm border border-[#D6C9B4] focus:border-[#2D5A4A] focus:outline-none"
             />
           </div>
