@@ -3,8 +3,12 @@ import nodemailer from "nodemailer";
 function getTransporter() {
   const host = process.env.SMTP_HOST;
   const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  if (!host || !user || !pass) return null;
+  const passRaw = process.env.SMTP_PASS;
+  if (!host || !user || !passRaw) return null;
+
+  // Some providers (notably Gmail) display app passwords with spaces.
+  // Nodemailer needs the raw token without whitespace.
+  const pass = passRaw.replace(/\s+/g, "").trim();
 
   return nodemailer.createTransport({
     host,
@@ -12,6 +16,16 @@ function getTransporter() {
     secure: process.env.SMTP_SECURE === "true",
     auth: { user, pass },
   });
+}
+
+function resolveFromAddress() {
+  const fromEnv = (process.env.SMTP_FROM ?? "").trim();
+  const user = (process.env.SMTP_USER ?? "").trim();
+  // If SMTP_FROM is missing or uses a non-real domain, default to authenticated user.
+  if (!fromEnv || /@eatwell\.local\b/i.test(fromEnv)) {
+    return user || "noreply@eatwell.local";
+  }
+  return fromEnv;
 }
 
 export async function sendTechnologistApprovalEmail(params: {
@@ -29,8 +43,7 @@ export async function sendTechnologistApprovalEmail(params: {
     return;
   }
 
-  const from =
-    process.env.SMTP_FROM ?? process.env.SMTP_USER ?? "noreply@eatwell.local";
+  const from = resolveFromAddress();
   const subject = params.approved
     ? "Eatwell+ — Таны хүнсний технологичийн бүртгэл батлагдлаа"
     : "Eatwell+ — Хүнсний технологичийн бүртгэлийн хүсэлт";
@@ -56,8 +69,7 @@ export async function sendPasswordResetOtpEmail(params: {
     return;
   }
 
-  const from =
-    process.env.SMTP_FROM ?? process.env.SMTP_USER ?? "noreply@eatwell.local";
+  const from = resolveFromAddress();
   const subject = "Eatwell+ — Нууц үг сэргээх код";
   const text = `Сайн байна уу${params.name ? `, ${params.name}` : ""}!
 
