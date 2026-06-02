@@ -34,6 +34,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { PurchaseRecipeModal } from "@/components/PurchaseRecipeModal";
+import { recordStudyRecipe } from "@/lib/study";
 
 type RecipeTranslation = {
   title: string;
@@ -330,6 +331,12 @@ export default function RecipePage() {
       cancelled = true;
     };
   }, [id]);
+
+  useEffect(() => {
+    if (loading) return;
+    const name = meal?.strMeal ?? systemRecipe?.title;
+    if (name) recordStudyRecipe(name);
+  }, [loading, meal?.strMeal, systemRecipe?.title]);
 
   async function submitComment() {
     const text = commentText.trim();

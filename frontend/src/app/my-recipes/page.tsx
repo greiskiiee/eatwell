@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, Pencil } from "lucide-react";
@@ -52,8 +52,10 @@ export default function MyRecipesPage() {
 
         <div className="px-3 sm:px-4 md:px-8 py-6 space-y-4">
           {error && (
-            <div className="flex flex-wrap items-center gap-3 px-4 py-3 rounded-xl bg-[#FBF0E6]
-                           border border-[#B84230]/20 text-[#B84230] text-[13px]">
+            <div
+              className="flex flex-wrap items-center gap-3 px-4 py-3 rounded-xl bg-[#FBF0E6]
+                           border border-[#B84230]/20 text-[#B84230] text-[13px]"
+            >
               <span>{error}</span>
               <button
                 type="button"
@@ -76,14 +78,16 @@ export default function MyRecipesPage() {
             </div>
           ) : recipes.length === 0 ? (
             <div className="text-center py-20 space-y-4">
-              <p className="text-[#9C8878] text-sm">Та одоогоор жор нэмээгүй байна.</p>
+              <p className="text-[#9C8878] text-sm">
+                Та одоогоор жор нэмээгүй байна.
+              </p>
               <Link
                 href="/new-recipe"
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#B84230] text-white
                            text-[13px] font-semibold hover:bg-[#9C3426] transition-colors"
               >
                 <Plus size={14} />
-                Эхний жораа нэмэх
+                Эхний жороо нэмэх
               </Link>
             </div>
           ) : (

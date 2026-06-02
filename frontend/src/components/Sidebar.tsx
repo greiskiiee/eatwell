@@ -244,7 +244,7 @@ export const Sidebar = () => {
           {settingsOpen && user && (
             <div
               className="absolute left-0 bottom-full mb-2 w-48 py-1.5 bg-white rounded-xl
-                            border border-[#D6C9B4] shadow-xl z-[100]"
+                            border border-[#D6C9B4] shadow-xl z-100"
               onClick={(e) => e.stopPropagation()}
             >
               <Link
