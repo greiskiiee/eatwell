@@ -55,6 +55,7 @@ export default function StudyPage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh();
   }, [refresh]);
 
@@ -107,7 +108,9 @@ export default function StudyPage() {
   function addRecipe() {
     if (!running || !recipeInput.trim()) return;
     const title = recipeInput.trim();
-    if (running.recipesFound.some((r) => r.toLowerCase() === title.toLowerCase())) {
+    if (
+      running.recipesFound.some((r) => r.toLowerCase() === title.toLowerCase())
+    ) {
       setRecipeInput("");
       return;
     }
@@ -162,7 +165,9 @@ export default function StudyPage() {
     URL.revokeObjectURL(url);
   }
 
-  const activeTask = STUDY_TASKS.find((t) => t.id === (running?.taskId ?? taskId));
+  const activeTask = STUDY_TASKS.find(
+    (t) => t.id === (running?.taskId ?? taskId),
+  );
 
   return (
     <div className="flex h-screen bg-[#EFE8DA]">
@@ -233,7 +238,9 @@ export default function StudyPage() {
                             : "bg-white text-[#5C4A3A] border-[#D6C9B4]",
                         ].join(" ")}
                       >
-                        {m === "manual" ? "Гараар (интернэт)" : "Систем (Eatwell+)"}
+                        {m === "manual"
+                          ? "Гараар (интернэт)"
+                          : "Систем (Eatwell+)"}
                       </button>
                     ))}
                   </div>
@@ -274,7 +281,9 @@ export default function StudyPage() {
                   Идэвхтэй session
                 </h2>
                 {!running ? (
-                  <p className="text-[13px] text-[#9C8878]">Session эхлээгүй байна.</p>
+                  <p className="text-[13px] text-[#9C8878]">
+                    Session эхлээгүй байна.
+                  </p>
                 ) : (
                   <>
                     <p className="text-[12px] text-[#9C8878]">
@@ -323,7 +332,9 @@ export default function StudyPage() {
                     </ul>
                     <button
                       type="button"
-                      onClick={() => finishSession(running.recipesFound.length >= 3)}
+                      onClick={() =>
+                        finishSession(running.recipesFound.length >= 3)
+                      }
                       className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
                                  bg-[#221C16] text-white text-[13px] font-semibold"
                     >
@@ -347,9 +358,15 @@ export default function StudyPage() {
               >
                 <div className="flex items-start gap-3">
                   {analysis.meetsTarget ? (
-                    <CheckCircle2 className="text-[#16A34A] shrink-0" size={22} />
+                    <CheckCircle2
+                      className="text-[#16A34A] shrink-0"
+                      size={22}
+                    />
                   ) : (
-                    <AlertTriangle className="text-[#D97706] shrink-0" size={22} />
+                    <AlertTriangle
+                      className="text-[#D97706] shrink-0"
+                      size={22}
+                    />
                   )}
                   <div>
                     <p className="font-semibold text-[#221C16]">
@@ -359,9 +376,11 @@ export default function StudyPage() {
                         : " (10 бодит оролцогч шаардлагатай)"}
                     </p>
                     <p className="text-[13px] text-[#5C4A3A] mt-1">
-                      Гараар: {formatDuration(Math.round(analysis.manualMeanSec))} · Систем:{" "}
-                      {formatDuration(Math.round(analysis.systemMeanSec))} · Оролцогч:{" "}
-                      {analysis.participantCount} · Бодит session:{" "}
+                      Гараар:{" "}
+                      {formatDuration(Math.round(analysis.manualMeanSec))} ·
+                      Систем:{" "}
+                      {formatDuration(Math.round(analysis.systemMeanSec))} ·
+                      Оролцогч: {analysis.participantCount} · Бодит session:{" "}
                       {analysis.realSessions.length}
                     </p>
                   </div>
@@ -393,8 +412,8 @@ export default function StudyPage() {
               </div>
 
               <p className="text-[11px] text-[#9C8878]">
-                «5 жишээ pilot» нь зөвхөн формат харуулах зориулалттай. Дiplom-д бодит 10+
-                оролцогчийн өгөгдөл оруулна уу.
+                «5 жишээ pilot» нь зөвхөн формат харуулах зориулалттай. Дiplom-д
+                бодит 10+ оролцогчийн өгөгдөл оруулна уу.
               </p>
 
               <div className="bg-white border border-[#D6C9B4]/60 rounded-2xl overflow-x-auto">
@@ -414,14 +433,22 @@ export default function StudyPage() {
                         row.manualSec != null &&
                         row.systemSec != null &&
                         row.manualSec > 0
-                          ? ((row.manualSec - row.systemSec) / row.manualSec) * 100
+                          ? ((row.manualSec - row.systemSec) / row.manualSec) *
+                            100
                           : null;
                       return (
-                        <tr key={`${row.participantId}-${row.taskId}`} className="border-t border-[#EFE8DA]">
+                        <tr
+                          key={`${row.participantId}-${row.taskId}`}
+                          className="border-t border-[#EFE8DA]"
+                        >
                           <td className="px-3 py-2">{row.participantLabel}</td>
                           <td className="px-3 py-2">{row.taskId}</td>
-                          <td className="px-3 py-2">{formatDuration(row.manualSec)}</td>
-                          <td className="px-3 py-2">{formatDuration(row.systemSec)}</td>
+                          <td className="px-3 py-2">
+                            {formatDuration(row.manualSec)}
+                          </td>
+                          <td className="px-3 py-2">
+                            {formatDuration(row.systemSec)}
+                          </td>
                           <td className="px-3 py-2">
                             {drop != null ? `${drop.toFixed(0)}%` : "—"}
                           </td>
@@ -449,8 +476,12 @@ export default function StudyPage() {
                         <td className="px-3 py-2">{s.participantLabel}</td>
                         <td className="px-3 py-2">{s.method}</td>
                         <td className="px-3 py-2">{s.taskId}</td>
-                        <td className="px-3 py-2">{formatDuration(s.durationSec)}</td>
-                        <td className="px-3 py-2">{s.isDemo ? "тийм" : "үгүй"}</td>
+                        <td className="px-3 py-2">
+                          {formatDuration(s.durationSec)}
+                        </td>
+                        <td className="px-3 py-2">
+                          {s.isDemo ? "тийм" : "үгүй"}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
