@@ -91,6 +91,8 @@ export function BarcodeScanModal({ open, onClose }: Props) {
   const [product, setProduct] = useState<OffProduct | null>(null);
   const [productSource, setProductSource] = useState<Source>(null);
   const [barcode, setBarcode] = useState("");
+  const [manualInput, setManualInput] = useState("");
+  const [manualInputError, setManualInputError] = useState("");
   const [errMsg, setErrMsg] = useState("");
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [submitError, setSubmitError] = useState("");
@@ -113,6 +115,8 @@ export function BarcodeScanModal({ open, onClose }: Props) {
     setProduct(null);
     setProductSource(null);
     setBarcode("");
+    setManualInput("");
+    setManualInputError("");
     setErrMsg("");
     setForm(EMPTY_FORM);
     setSubmitError("");
@@ -206,6 +210,18 @@ export function BarcodeScanModal({ open, onClose }: Props) {
     reset();
     await startScanner();
   }, [reset, startScanner, stopScanner]);
+
+  const submitManualBarcode = useCallback(() => {
+    const code = manualInput.replace(/\D/g, "");
+    if (code.length < 8) {
+      setManualInputError("Баркод дор хаяж 8 оронтой байна");
+      return;
+    }
+    setManualInputError("");
+    stopScanner();
+    setBarcode(code);
+    void lookupProduct(code);
+  }, [manualInput, lookupProduct, stopScanner]);
 
   function openAddForm() {
     setForm({ ...EMPTY_FORM });
@@ -310,33 +326,44 @@ export function BarcodeScanModal({ open, onClose }: Props) {
         </div>
 
         {stage === "scanning" && (
-          <div className="relative bg-[#221C16]">
-            <video
-              ref={videoRef}
-              className="w-full aspect-4/3 object-cover"
-              muted
-              playsInline
-            />
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="relative w-3/5 aspect-3/2">
-                {[
-                  "top-0 left-0 border-t-[3px] border-l-[3px] rounded-tl-lg",
-                  "top-0 right-0 border-t-[3px] border-r-[3px] rounded-tr-lg",
-                  "bottom-0 left-0 border-b-[3px] border-l-[3px] rounded-bl-lg",
-                  "bottom-0 right-0 border-b-[3px] border-r-[3px] rounded-br-lg",
-                ].map((cls, i) => (
-                  <div
-                    key={i}
-                    className={`absolute w-7 h-7 border-[#B84230] ${cls}`}
-                  />
-                ))}
-                <div className="absolute left-2 right-2 h-0.5 bg-[#B84230] top-1/2 opacity-90" />
+          <>
+            <div className="relative bg-[#221C16]">
+              <video
+                ref={videoRef}
+                className="w-full aspect-4/3 object-cover"
+                muted
+                playsInline
+              />
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="relative w-3/5 aspect-3/2">
+                  {[
+                    "top-0 left-0 border-t-[3px] border-l-[3px] rounded-tl-lg",
+                    "top-0 right-0 border-t-[3px] border-r-[3px] rounded-tr-lg",
+                    "bottom-0 left-0 border-b-[3px] border-l-[3px] rounded-bl-lg",
+                    "bottom-0 right-0 border-b-[3px] border-r-[3px] rounded-br-lg",
+                  ].map((cls, i) => (
+                    <div
+                      key={i}
+                      className={`absolute w-7 h-7 border-[#B84230] ${cls}`}
+                    />
+                  ))}
+                  <div className="absolute left-2 right-2 h-0.5 bg-[#B84230] top-1/2 opacity-90" />
+                </div>
               </div>
+              <p className="absolute bottom-3 inset-x-0 text-center text-white/70 text-[11.5px]">
+                Баркодыг хүрээний дунд барина уу
+              </p>
             </div>
-            <p className="absolute bottom-3 inset-x-0 text-center text-white/70 text-[11.5px]">
-              Баркодыг хүрээний дунд барина уу
-            </p>
-          </div>
+            <ManualBarcodeInput
+              value={manualInput}
+              error={manualInputError}
+              onChange={(v) => {
+                setManualInput(v);
+                if (manualInputError) setManualInputError("");
+              }}
+              onSubmit={submitManualBarcode}
+            />
+          </>
         )}
 
         {(stage === "loading" || stage === "submitting") && (
@@ -547,7 +574,7 @@ export function BarcodeScanModal({ open, onClose }: Props) {
         )}
 
         {stage === "error" && (
-          <div className="flex flex-col items-center justify-center py-10 px-6 text-center gap-4">
+          <div className="flex flex-col items-center justify-center py-8 px-6 text-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-[#F5E0DD] flex items-center justify-center">
               <X size={22} className="text-[#B84230]" />
             </div>
@@ -559,10 +586,20 @@ export function BarcodeScanModal({ open, onClose }: Props) {
                 {errMsg}
               </p>
             </div>
+            <ManualBarcodeInput
+              value={manualInput}
+              error={manualInputError}
+              onChange={(v) => {
+                setManualInput(v);
+                if (manualInputError) setManualInputError("");
+              }}
+              onSubmit={submitManualBarcode}
+              className="w-full text-left"
+            />
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl bg-[#B84230] text-white text-[13px] font-semibold hover:bg-[#9C3426] transition-colors"
+              className="px-5 py-2.5 rounded-xl border border-[#D6C9B4] text-[13px] font-semibold text-[#5C4A3A] hover:bg-[#EFE8DA] transition-colors"
             >
               Хаах
             </button>
@@ -660,6 +697,59 @@ export function BarcodeScanModal({ open, onClose }: Props) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function ManualBarcodeInput({
+  value,
+  error,
+  onChange,
+  onSubmit,
+  className = "",
+}: {
+  value: string;
+  error?: string;
+  onChange: (v: string) => void;
+  onSubmit: () => void;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`px-5 py-4 border-t border-[#EFE8DA] bg-white ${className}`}
+    >
+      <p className="text-[11px] font-bold text-[#9C8878] uppercase tracking-wider mb-2">
+        Эсвэл баркодыг гараар оруулна уу
+      </p>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
+          value={value}
+          onChange={(e) => onChange(e.target.value.replace(/\D/g, ""))}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              onSubmit();
+            }
+          }}
+          placeholder="8690632007057"
+          aria-label="Баркод"
+          className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border border-[#D6C9B4]
+                     text-[13px] font-mono text-[#221C16] focus:border-[#B84230] focus:outline-none"
+        />
+        <button
+          type="button"
+          onClick={onSubmit}
+          disabled={value.replace(/\D/g, "").length < 8}
+          className="shrink-0 px-4 py-2.5 rounded-xl bg-[#B84230] text-white text-[13px] font-semibold
+                     hover:bg-[#9C3426] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Хайх
+        </button>
+      </div>
+      {error && <p className="text-[11.5px] text-[#B84230] mt-2">{error}</p>}
     </div>
   );
 }
