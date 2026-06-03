@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { HomeHeader } from "@/components/HomeHeader";
 import { RightPanel } from "@/components/RightPanel";
@@ -17,8 +17,8 @@ import { getStoredToken } from "@/lib/auth";
 import { usersApi } from "@/lib/users";
 import { MealCard } from "@/components/MealCard";
 import { SystemRecipeCard } from "@/components/SystemRecipeCard";
-import { recipeApi, type TechnologistRecipe } from "@/lib/recipes";
 import { useIngredientLabels } from "@/hooks/useIngredientLabels";
+import { useFilteredSystemRecipes } from "@/hooks/useFilteredSystemRecipes";
 
 function FeaturedMeal({
   meal,
@@ -156,39 +156,19 @@ export function HomeFeed() {
   } = useMeals();
   const { labelFor } = useIngredientLabels(selectedIngredients);
   const { isSaved, toggleSave } = useSavedRecipes();
-  const [systemRecipes, setSystemRecipes] = useState<TechnologistRecipe[]>([]);
-  const [systemLoading, setSystemLoading] = useState(true);
 
   const isTechnologist = user?.role === "technologist";
-
-  useEffect(() => {
-    let cancelled = false;
-    const t = setTimeout(() => {
-      setSystemLoading(true);
-      recipeApi
-        .list({
-          limit: 50,
-          q: searchQ.trim() || undefined,
-          ingredients:
-            selectedIngredients.length > 0 ? selectedIngredients : undefined,
-          tags: selectedTag ? [selectedTag] : undefined,
-          maxMinutes,
-        })
-        .then((list) => {
-          if (!cancelled) setSystemRecipes(list);
-        })
-        .catch(() => {
-          if (!cancelled) setSystemRecipes([]);
-        })
-        .finally(() => {
-          if (!cancelled) setSystemLoading(false);
-        });
-    }, searchQ ? 400 : 0);
-    return () => {
-      cancelled = true;
-      clearTimeout(t);
-    };
-  }, [searchQ, selectedIngredients, selectedTag, maxMinutes]);
+  const {
+    recipes: systemRecipes,
+    loading: systemLoading,
+    hasActiveFilters,
+  } = useFilteredSystemRecipes({
+    searchQ,
+    selectedIngredients,
+    selectedTag,
+    maxMinutes,
+    debounceMs: searchQ.trim() ? 400 : 0,
+  });
 
   return (
     <div className="flex h-screen bg-[#EFE8DA]">
@@ -216,7 +196,7 @@ export function HomeFeed() {
 
         <div className="flex gap-6 px-3 sm:px-4 md:px-8 pt-4 sm:pt-6 pb-10 min-w-0">
           <div className="flex-1 min-w-0 space-y-5">
-            {(systemLoading || systemRecipes.length > 0) && (
+            {(systemLoading || systemRecipes.length > 0 || hasActiveFilters) && (
               <section className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h2 className="font-display text-[17px] font-semibold text-[#221C16]">
@@ -234,6 +214,10 @@ export function HomeFeed() {
                       <SkeletonCard key={`sys-${i}`} />
                     ))}
                   </div>
+                ) : systemRecipes.length === 0 ? (
+                  <p className="text-center text-[#9C8878] text-sm py-10 bg-white/60 rounded-2xl border border-[#D6C9B4]/60">
+                    Eatwell+ дээр тохирох жор олдсонгүй
+                  </p>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                     {systemRecipes.map((recipe) => (

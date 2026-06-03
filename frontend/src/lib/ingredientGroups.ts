@@ -20,7 +20,7 @@ export const INGREDIENT_GROUPS: IngredientGroup[] = [
   { id: "seafood", label: "Далайн хоол" },
   { id: "vegetables", label: "Хүнсний ногоо" },
   { id: "fruits", label: "Жимс" },
-  { id: "dairy", label: "Сүү, өргөст хөөрөг" },
+  { id: "dairy", label: "Сүү, сүүн бүтээгдэхүүн" },
   { id: "grains", label: "Үр тариа, гоймон" },
   { id: "legumes", label: "Бууцай, самар" },
   { id: "spices", label: "Амтлагч" },

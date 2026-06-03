@@ -1,59 +1,51 @@
 import {
   fetchIngredientCatalog,
   fetchIngredientLabels,
+  resetIngredientCatalogCache,
 } from "@/lib/ingredientCatalog";
 
 describe("ingredientCatalog api", () => {
   beforeEach(() => {
+    resetIngredientCatalogCache();
     global.fetch = jest.fn();
   });
 
-  it("fetchIngredientCatalog returns items (happy path)", async () => {
+  it("fetchIngredientCatalog returns items from MealDB list (happy path)", async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
-      text: async () =>
-        JSON.stringify({
-          items: [
-            {
-              mealDbKey: "chicken",
-              mealDbName: "Chicken",
-              nameMn: "Тахиа",
-              group: "meat",
-              thumb: "",
-            },
-          ],
-        }),
+      json: async () => ({
+        meals: [
+          { strIngredient: "Chicken", strThumb: "https://example.com/chicken.png" },
+          { strIngredient: "Beef" },
+        ],
+      }),
     });
 
     const items = await fetchIngredientCatalog();
-    expect(items).toHaveLength(1);
-    expect(items[0].nameMn).toBe("Тахиа");
+    expect(items.length).toBeGreaterThanOrEqual(2);
+    expect(items.find((i) => i.mealDbName === "Chicken")).toMatchObject({
+      mealDbKey: "chicken",
+      group: "meat",
+    });
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("list.php?i=list"),
+    );
   });
 
-  it("fetchIngredientCatalog passes search query", async () => {
+  it("fetchIngredientCatalog filters client-side by query", async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
-      text: async () => JSON.stringify({ items: [] }),
+      json: async () => ({
+        meals: [
+          { strIngredient: "Chicken" },
+          { strIngredient: "Rice" },
+        ],
+      }),
     });
 
-    await fetchIngredientCatalog("тахиа");
-
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("q=%D1%82%D0%B0%D1%85%D0%B8%D0%B0"),
-      expect.any(Object),
-    );
-  });
-
-  it("fetchIngredientCatalog throws on error (bad case)", async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: false,
-      status: 500,
-      text: async () => JSON.stringify({ error: "SERVER_ERROR" }),
-    });
-
-    await expect(fetchIngredientCatalog()).rejects.toThrow(
-      "API request failed",
-    );
+    const items = await fetchIngredientCatalog("chick");
+    expect(items).toHaveLength(1);
+    expect(items[0].mealDbName).toBe("Chicken");
   });
 
   it("fetchIngredientLabels returns empty for no names", async () => {

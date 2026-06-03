@@ -43,13 +43,16 @@ export const recipeApi = {
     limit?: number;
     q?: string;
     ingredients?: string[];
+    ingredientGroups?: string[][];
     tags?: string[];
     maxMinutes?: number | null;
   }) => {
     const qs = new URLSearchParams();
     if (params?.limit) qs.set("limit", String(params.limit));
     if (params?.q?.trim()) qs.set("q", params.q.trim());
-    if (params?.ingredients?.length) {
+    if (params?.ingredientGroups?.length) {
+      qs.set("ingredientGroups", JSON.stringify(params.ingredientGroups));
+    } else if (params?.ingredients?.length) {
       qs.set("ingredients", params.ingredients.join(","));
     }
     if (params?.tags?.length) {

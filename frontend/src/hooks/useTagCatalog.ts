@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getCategories } from "@/lib/mealdb";
+import { getCategoryList } from "@/lib/mealdb";
 import { recipeApi } from "@/lib/recipes";
 
 export type TagSource = "mealdb" | "eatwell";
@@ -27,7 +27,7 @@ export function useTagCatalog() {
     setLoading(true);
 
     Promise.allSettled([
-      getCategories().then((cats) => cats.map((c) => c.strCategory)),
+      getCategoryList(),
       recipeApi.tags().catch(() => [] as string[]),
     ])
       .then(([mealRes, eatwellRes]) => {

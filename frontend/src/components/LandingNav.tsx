@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { ScanLine, Menu, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@/context/UserContext";
 // import { ScannerModal } from "./ScannerModal";
 
 export function LandingNav() {
   const router = useRouter();
   const [scanOpen, setScanOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const user = useUser();
 
   return (
     <>
@@ -29,7 +31,7 @@ export function LandingNav() {
               Онцлог
             </a>
             <a
-              href="home"
+              href="/home"
               className="hover:text-chimge-primary transition-colors"
             >
               Жорууд
@@ -57,17 +59,27 @@ export function LandingNav() {
               Баркод скан
             </button>
             <button
-              onClick={() => router.replace("/login")}
-              className="px-4 py-2 rounded-xl text-[13px] font-medium text-chimge-ink-2 hover:bg-chimge-bg transition-colors"
-            >
-              Нэвтрэх
-            </button>
-            <button
-              onClick={() => router.replace("/signup")}
+              onClick={() => router.push("/home")}
               className="px-4 py-2 rounded-xl bg-chimge-primary text-[#FFF8EC] text-[13px] font-semibold hover:bg-chimge-primary-dk transition-colors"
             >
-              Бүртгүүлэх
+              Эхлэх
             </button>
+            {!user && (
+              <>
+                <button
+                  onClick={() => router.replace("/login")}
+                  className="px-4 py-2 rounded-xl text-[13px] font-medium text-chimge-ink-2 hover:bg-chimge-bg transition-colors"
+                >
+                  Нэвтрэх
+                </button>
+                <button
+                  onClick={() => router.replace("/signup")}
+                  className="px-4 py-2 rounded-xl border border-chimge-line text-[13px] font-semibold text-chimge-ink-2 hover:bg-chimge-bg transition-colors"
+                >
+                  Бүртгүүлэх
+                </button>
+              </>
+            )}
           </div>
 
           <button
@@ -87,7 +99,7 @@ export function LandingNav() {
               Онцлог
             </a>
             <a
-              href="home"
+              href="/home"
               className="text-[14px] font-medium text-chimge-ink-2 py-1"
             >
               Жорууд
@@ -100,19 +112,35 @@ export function LandingNav() {
             </a>
             <div className="flex gap-2 pt-2">
               <button
+                onClick={() => router.push("/home")}
+                className="flex-1 py-2.5 rounded-xl bg-chimge-primary text-[#FFF8EC] text-[13px] font-semibold"
+              >
+                Эхлэх
+              </button>
+              <button
                 onClick={() => setScanOpen(true)}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-chimge-line text-[13px] font-medium text-chimge-ink-2"
               >
                 <ScanLine size={15} className="text-chimge-primary" /> Баркод
                 скан
               </button>
-              <button
-                onClick={() => router.replace("/signup")}
-                className="flex-1 py-2.5 rounded-xl bg-chimge-primary text-[#FFF8EC] text-[13px] font-semibold"
-              >
-                Бүртгүүлэх
-              </button>
             </div>
+            {!user && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => router.replace("/login")}
+                  className="flex-1 py-2.5 rounded-xl border border-chimge-line text-[13px] font-semibold text-chimge-ink-2"
+                >
+                  Нэвтрэх
+                </button>
+                <button
+                  onClick={() => router.replace("/signup")}
+                  className="flex-1 py-2.5 rounded-xl bg-chimge-primary text-[#FFF8EC] text-[13px] font-semibold"
+                >
+                  Бүртгүүлэх
+                </button>
+              </div>
+            )}
           </div>
         )}
       </nav>

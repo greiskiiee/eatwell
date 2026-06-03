@@ -58,7 +58,7 @@ function mealFromFilter(
 export async function searchMeals(query: string): Promise<MealDBRecipe[]> {
   const res = await fetch(`${BASE}/search.php?s=${encodeURIComponent(query)}`);
   const data = await res.json();
-  return data.meals ?? [];
+  return dedupeMealsById(data.meals ?? []);
 }
 
 export async function getMealsByCategory(
@@ -70,9 +70,11 @@ export async function getMealsByCategory(
   );
   const data = await res.json();
   const meals: MealDBFilterMeal[] = data.meals ?? [];
-  return meals
-    .slice(0, limit)
-    .map((m) => mealFromFilter(m, { strCategory: category, strArea: "" }));
+  return dedupeMealsById(
+    meals
+      .slice(0, limit)
+      .map((m) => mealFromFilter(m, { strCategory: category, strArea: "" })),
+  );
 }
 
 export async function getMealById(id: string): Promise<MealDBRecipe | null> {
@@ -89,7 +91,7 @@ export async function getRandomMeals(count = 10): Promise<MealDBRecipe[]> {
         .then((d) => d.meals?.[0]),
     ),
   );
-  return results.filter(Boolean);
+  return dedupeMealsById(results.filter(Boolean));
 }
 
 export async function getCategories(): Promise<MealDBCategory[]> {
@@ -98,10 +100,42 @@ export async function getCategories(): Promise<MealDBCategory[]> {
   return data.categories ?? [];
 }
 
+/** All category names — list.php?c=list */
+export async function getCategoryList(): Promise<string[]> {
+  const res = await fetch(`${BASE}/list.php?c=list`);
+  const data = await res.json();
+  const meals: { strCategory?: string }[] = data.meals ?? [];
+  return meals
+    .map((m) => m.strCategory?.trim())
+    .filter((c): c is string => Boolean(c));
+}
+
+/** All area names — list.php?a=list */
+export async function getAreaList(): Promise<string[]> {
+  const res = await fetch(`${BASE}/list.php?a=list`);
+  const data = await res.json();
+  const meals: { strArea?: string }[] = data.meals ?? [];
+  return meals
+    .map((m) => m.strArea?.trim())
+    .filter((a): a is string => Boolean(a));
+}
+
+/** All ingredients — list.php?i=list */
 export async function getAllIngredients(): Promise<MealDBIngredient[]> {
   const res = await fetch(`${BASE}/list.php?i=list`);
   const data = await res.json();
   return data.meals ?? [];
+}
+
+export function dedupeMealsById(meals: MealDBRecipe[]): MealDBRecipe[] {
+  const seen = new Set<string>();
+  const out: MealDBRecipe[] = [];
+  for (const meal of meals) {
+    if (seen.has(meal.idMeal)) continue;
+    seen.add(meal.idMeal);
+    out.push(meal);
+  }
+  return out;
 }
 
 export async function filterMealsByIngredient(
@@ -192,6 +226,64 @@ export async function getMealsByAllIngredients(
   );
 
   return mergeFilterMealsAll(lists, limit);
+}
+
+async function unionMealsForIngredients(
+  ingredients: string[],
+): Promise<Map<string, MealDBFilterMeal>> {
+  const byId = new Map<string, MealDBFilterMeal>();
+  const lists = await Promise.all(ingredients.map((ing) => filterMealsByIngredient(ing)));
+  for (const list of lists) {
+    for (const meal of list) {
+      if (!byId.has(meal.idMeal)) byId.set(meal.idMeal, meal);
+    }
+  }
+  return byId;
+}
+
+/**
+ * AND across groups, OR within a group.
+ * Example: [[Ground Beef, Beef Brisket], [Rice]] means (beef* AND rice).
+ */
+export async function getMealsByIngredientGroups(
+  groups: string[][],
+  limit = MEALDB_LIST_LIMIT,
+): Promise<MealDBRecipe[]> {
+  const clean = groups
+    .map((g) => [...new Set(g.map((x) => x.trim()).filter(Boolean))])
+    .filter((g) => g.length > 0);
+  if (clean.length === 0) return [];
+
+  const unionMaps = await Promise.all(clean.map((g) => unionMealsForIngredients(g)));
+
+  let commonIds = new Set<string>([...unionMaps[0]!.keys()]);
+  for (const map of unionMaps.slice(1)) {
+    commonIds = new Set([...commonIds].filter((id) => map.has(id)));
+  }
+
+  // If no recipe contains ALL groups, fall back to "any match" so users still see results.
+  // This avoids a confusing empty state when ingredient variants don't overlap perfectly.
+  if (commonIds.size === 0) {
+    const allMeals: MealDBFilterMeal[][] = [];
+    for (const group of clean) {
+      // fetch lists again per ingredient? we already have unionMaps (deduped).
+      // Convert union map values to a list to use existing ranking.
+      const m = await unionMealsForIngredients(group);
+      allMeals.push([...m.values()]);
+    }
+    return mergeFilterMealsAny(allMeals, limit);
+  }
+
+  const first = unionMaps[0]!;
+  const out: MealDBRecipe[] = [];
+  for (const id of commonIds) {
+    const meal = first.get(id) ?? unionMaps.find((m) => m.get(id))?.get(id);
+    if (meal) out.push(mealFromFilter(meal));
+  }
+
+  return dedupeMealsById(
+    out.sort((a, b) => a.strMeal.localeCompare(b.strMeal)).slice(0, limit),
+  );
 }
 
 // Extract ingredients list from a MealDB recipe

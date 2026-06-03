@@ -4,9 +4,11 @@ import {
   searchMeals,
   getMealsByCategory,
   getRandomMeals,
-  getCategories,
-  getMealsByIngredients,
+  dedupeMealsById,
+  getCategoryList,
+  getMealsByIngredientGroups,
 } from "@/lib/mealdb";
+import { selectedToIngredientGroups } from "@/lib/ingredientAny";
 
 export function useMeals() {
   const [searchQ, setSearchQ] = useState("");
@@ -20,16 +22,15 @@ export function useMeals() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getCategories()
-      .then((cats) =>
-        setMealDbCategories(cats.map((c) => c.strCategory.toLowerCase())),
-      )
+    getCategoryList()
+      .then((cats) => setMealDbCategories(cats.map((c) => c.toLowerCase())))
       .catch(() => setMealDbCategories([]));
   }, []);
 
   const setResults = useCallback((results: MealDBRecipe[]) => {
-    setFeatured(results[0] ?? null);
-    setMeals(results.slice(1));
+    const unique = dedupeMealsById(results);
+    setFeatured(unique[0] ?? null);
+    setMeals(unique.slice(1));
   }, []);
 
   const fetchMeals = useCallback(
@@ -48,10 +49,11 @@ export function useMeals() {
         }
 
         if (selectedIngredients.length > 0) {
-          const results = await getMealsByIngredients(selectedIngredients);
+          const groups = selectedToIngredientGroups(selectedIngredients);
+          const results = await getMealsByIngredientGroups(groups);
           if (!signal.cancelled) {
             setFeatured(null);
-            setMeals(results);
+            setMeals(dedupeMealsById(results));
           }
           return;
         }
@@ -94,7 +96,7 @@ export function useMeals() {
       signal.cancelled = true;
       clearTimeout(t);
     };
-  }, [fetchMeals, searchQ, selectedIngredients]);
+  }, [fetchMeals]);
 
   return {
     searchQ,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Search as SearchIcon, X } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar";
 import { MealCard } from "@/components/MealCard";
@@ -11,14 +11,15 @@ import { SearchTimeFilter } from "@/components/SearchTimeFilter";
 import { useSavedRecipes } from "@/context/SavedRecipesContext";
 import { useIngredientLabels } from "@/hooks/useIngredientLabels";
 import { useTagCatalog } from "@/hooks/useTagCatalog";
+import { selectedToIngredientGroups } from "@/lib/ingredientAny";
+import { useFilteredSystemRecipes } from "@/hooks/useFilteredSystemRecipes";
 import {
+  dedupeMealsById,
   getMealsByCategory,
-  getMealsByIngredients,
+  getMealsByIngredientGroups,
   searchMeals,
   type MealDBRecipe,
 } from "@/lib/mealdb";
-import { recipeApi, type TechnologistRecipe } from "@/lib/recipes";
-
 function mealMatchesQuery(meal: MealDBRecipe, q: string) {
   if (!q) return true;
   return meal.strMeal.toLowerCase().includes(q.toLowerCase());
@@ -30,21 +31,23 @@ export default function SearchPage() {
   const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [maxMinutes, setMaxMinutes] = useState<number | null>(null);
-  const [systemRecipes, setSystemRecipes] = useState<TechnologistRecipe[]>([]);
   const [meals, setMeals] = useState<MealDBRecipe[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [mealLoading, setMealLoading] = useState(false);
+  const {
+    recipes: systemRecipes,
+    loading: systemLoading,
+    hasActiveFilters,
+  } = useFilteredSystemRecipes({
+    searchQ: debouncedQ,
+    selectedIngredients,
+    selectedTag,
+    maxMinutes,
+    debounceMs: 0,
+  });
+  const loading = mealLoading || systemLoading;
   const { isSaved, toggleSave } = useSavedRecipes();
   const { labelFor } = useIngredientLabels(selectedIngredients);
   const { findByLabel } = useTagCatalog();
-
-  const hasFilters = useMemo(
-    () =>
-      Boolean(debouncedQ) ||
-      selectedIngredients.length > 0 ||
-      selectedTag != null ||
-      maxMinutes != null,
-    [debouncedQ, selectedIngredients, selectedTag, maxMinutes],
-  );
 
   useEffect(() => {
     const id = window.setTimeout(() => setDebouncedQ(query.trim()), 350);
@@ -52,57 +55,44 @@ export default function SearchPage() {
   }, [query]);
 
   const runSearch = useCallback(async () => {
-    if (!hasFilters) {
-      setSystemRecipes([]);
+    if (!hasActiveFilters) {
       setMeals([]);
-      setLoading(false);
+      setMealLoading(false);
       return;
     }
 
-    setLoading(true);
+    setMealLoading(true);
     try {
-      const systemPromise = recipeApi.list({
-        limit: 50,
-        q: debouncedQ || undefined,
-        ingredients:
-          selectedIngredients.length > 0 ? selectedIngredients : undefined,
-        tags: selectedTag ? [selectedTag] : undefined,
-        maxMinutes,
-      });
-
-      let mealPromise: Promise<MealDBRecipe[]> = Promise.resolve([]);
+      let mealResults: MealDBRecipe[] = [];
       if (maxMinutes == null) {
         if (selectedIngredients.length > 0) {
-          mealPromise = getMealsByIngredients(selectedIngredients);
+          mealResults = await getMealsByIngredientGroups(
+            selectedToIngredientGroups(selectedIngredients),
+          );
         } else if (debouncedQ) {
-          mealPromise = searchMeals(debouncedQ);
+          mealResults = await searchMeals(debouncedQ);
         } else if (selectedTag) {
           const entry = findByLabel(selectedTag);
           if (entry?.sources.includes("mealdb")) {
-            mealPromise = getMealsByCategory(entry.label);
+            mealResults = await getMealsByCategory(entry.label);
           }
         }
       }
-
-      const [system, mealResults] = await Promise.all([
-        systemPromise,
-        mealPromise,
-      ]);
 
       const filteredMeals = mealResults.filter((m) =>
         mealMatchesQuery(m, debouncedQ),
       );
 
-      setSystemRecipes(system);
-      setMeals(maxMinutes != null ? [] : filteredMeals);
+      setMeals(
+        maxMinutes != null ? [] : dedupeMealsById(filteredMeals),
+      );
     } catch {
-      setSystemRecipes([]);
       setMeals([]);
     } finally {
-      setLoading(false);
+      setMealLoading(false);
     }
   }, [
-    hasFilters,
+    hasActiveFilters,
     debouncedQ,
     selectedIngredients,
     selectedTag,
@@ -138,7 +128,7 @@ export default function SearchPage() {
             <h1 className="font-display text-[17px] sm:text-[19px] font-semibold text-[#221C16]">
               Жор хайх
             </h1>
-            {hasFilters && (
+            {hasActiveFilters && (
               <button
                 type="button"
                 onClick={clearAllFilters}
@@ -215,7 +205,7 @@ export default function SearchPage() {
         </header>
 
         <div className="px-3 sm:px-4 md:px-8 py-6">
-          {!hasFilters ? (
+          {!hasActiveFilters ? (
             <p className="text-center text-[#9C8878] text-sm py-16">
               Нэр, шошго, орц эсвэл хугацаагаар хайна — Eatwell+ болон TheMealDB
             </p>
@@ -246,11 +236,15 @@ export default function SearchPage() {
                 )}
               </p>
 
-              {systemRecipes.length > 0 && (
-                <section className="mb-8">
-                  <h2 className="font-display text-[15px] font-semibold text-[#221C16] mb-3">
-                    Eatwell+ ({systemRecipes.length})
-                  </h2>
+              <section className="mb-8">
+                <h2 className="font-display text-[15px] font-semibold text-[#221C16] mb-3">
+                  Eatwell+ ({systemRecipes.length})
+                </h2>
+                {systemRecipes.length === 0 ? (
+                  <p className="text-center text-[#9C8878] text-sm py-10 bg-white/60 rounded-2xl border border-[#D6C9B4]/60">
+                    Eatwell+ дээр тохирох жор олдсонгүй
+                  </p>
+                ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                     {systemRecipes.map((recipe) => (
                       <SystemRecipeCard
@@ -261,8 +255,8 @@ export default function SearchPage() {
                       />
                     ))}
                   </div>
-                </section>
-              )}
+                )}
+              </section>
 
               {maxMinutes == null && (
                 <section>

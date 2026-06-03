@@ -343,8 +343,38 @@ describe("Recipes routes — list search", () => {
       expect.objectContaining({
         isDraft: false,
         $and: expect.arrayContaining([
-          { ingredients: { $regex: "flour", $options: "i" } },
-          { ingredients: { $regex: "mutton", $options: "i" } },
+          expect.objectContaining({
+            $or: expect.arrayContaining([
+              { ingredients: { $regex: "flour", $options: "i" } },
+            ]),
+          }),
+          expect.objectContaining({
+            $or: expect.arrayContaining([
+              { ingredients: { $regex: "mutton", $options: "i" } },
+            ]),
+          }),
+        ]),
+      }),
+    );
+  });
+
+  it("GET / filters by ingredientGroups (OR within group, AND across)", async () => {
+    const groups = encodeURIComponent(
+      JSON.stringify([["chicken", "chicken breast"], ["flour"]]),
+    );
+    const res = await request(app).get(
+      `/api/recipes?ingredientGroups=${groups}&limit=10`,
+    );
+
+    expect(res.status).toBe(200);
+    const filter = mockedFind.mock.calls[0]![0] as unknown as {
+      $and: Record<string, unknown>[];
+    };
+    expect(filter.$and).toHaveLength(2);
+    expect(filter.$and[0]).toEqual(
+      expect.objectContaining({
+        $or: expect.arrayContaining([
+          expect.objectContaining({ $or: expect.any(Array) }),
         ]),
       }),
     );

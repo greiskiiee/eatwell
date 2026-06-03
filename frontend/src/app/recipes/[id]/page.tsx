@@ -235,9 +235,9 @@ export default function RecipePage() {
     return [];
   }, [meal, systemRecipe]);
 
-  const userAllergens = user?.allergens ?? [];
+  const userAllergens = user?.allergens;
   const matchedAllergens = useMemo(
-    () => getMatchingAllergens(ingredientLines, userAllergens),
+    () => getMatchingAllergens(ingredientLines, userAllergens ?? []),
     [ingredientLines, userAllergens],
   );
   const { labelFor } = useIngredientLabels(matchedAllergens);
@@ -601,7 +601,7 @@ export default function RecipePage() {
                           shadow-[0_2px_12px_rgba(34,28,22,0.06)]"
               >
                 {shownIngredients.map((ing, i) => {
-                  const isAllergen = userAllergens.some((a) =>
+                  const isAllergen = (userAllergens ?? []).some((a) =>
                     lineContainsAllergen(ingredients[i] ?? ing, a),
                   );
                   return (

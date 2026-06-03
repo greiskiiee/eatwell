@@ -42,6 +42,44 @@ function parseIngredientQuery(value: unknown): string[] {
     .filter(Boolean);
 }
 
+function parseIngredientGroups(value: unknown): string[][] {
+  if (typeof value !== "string" || !value.trim()) return [];
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(Array.isArray)
+      .map((group) =>
+        group
+          .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+          .map((s) => s.trim()),
+      )
+      .filter((group) => group.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+/** Match a term in title, description, steps, or ingredient lines. */
+function ingredientTermFilter(term: string) {
+  const regex = escapeRegex(term);
+  return {
+    $or: [
+      { ingredients: { $regex: regex, $options: "i" } },
+      { title: { $regex: regex, $options: "i" } },
+      { description: { $regex: regex, $options: "i" } },
+      { steps: { $regex: regex, $options: "i" } },
+    ],
+  };
+}
+
+function ingredientGroupFilter(terms: string[]) {
+  const unique = [...new Set(terms.map((t) => t.trim()).filter(Boolean))];
+  if (unique.length === 0) return null;
+  if (unique.length === 1) return ingredientTermFilter(unique[0]!);
+  return { $or: unique.map((term) => ingredientTermFilter(term)) };
+}
+
 recipesRouter.get("/tags", async (_req, res) => {
   try {
     const tags = await TechnologistRecipeModel.distinct("tags", {
@@ -60,14 +98,16 @@ recipesRouter.get("/", async (req, res) => {
   const limit = Math.min(Math.max(Number(req.query.limit) || 12, 1), 50);
   const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
   const ingredients = parseIngredientQuery(req.query.ingredients);
+  const ingredientGroups = parseIngredientGroups(req.query.ingredientGroups);
   const tags = parseIngredientQuery(req.query.tags);
   const maxMinutes = Number(req.query.maxMinutes);
 
   const filter: Record<string, unknown> = { isDraft: false };
-  const and: Record<string, unknown>[] = [];
+  const baseAnd: Record<string, unknown>[] = [];
+  const ingredientAnd: Record<string, unknown>[] = [];
 
   if (q) {
-    and.push({
+    baseAnd.push({
       $or: [
         { title: { $regex: escapeRegex(q), $options: "i" } },
         { description: { $regex: escapeRegex(q), $options: "i" } },
@@ -75,14 +115,19 @@ recipesRouter.get("/", async (req, res) => {
     });
   }
 
-  for (const ingredient of ingredients) {
-    and.push({
-      ingredients: { $regex: escapeRegex(ingredient), $options: "i" },
-    });
+  if (ingredientGroups.length > 0) {
+    for (const group of ingredientGroups) {
+      const clause = ingredientGroupFilter(group);
+      if (clause) ingredientAnd.push(clause);
+    }
+  } else {
+    for (const ingredient of ingredients) {
+      ingredientAnd.push(ingredientTermFilter(ingredient));
+    }
   }
 
   if (tags.length > 0) {
-    and.push({
+    baseAnd.push({
       tags: {
         $in: tags.map((t) => new RegExp(`^${escapeRegex(t)}$`, "i")),
       },
@@ -90,7 +135,7 @@ recipesRouter.get("/", async (req, res) => {
   }
 
   if (Number.isFinite(maxMinutes) && maxMinutes > 0) {
-    and.push({
+    baseAnd.push({
       $expr: {
         $and: [
           {
@@ -120,13 +165,24 @@ recipesRouter.get("/", async (req, res) => {
     });
   }
 
-  if (and.length > 0) {
-    filter.$and = and;
-  }
+  const buildFilter = (groups: Record<string, unknown>[]) => {
+    const clauses = [...baseAnd, ...groups];
+    if (clauses.length === 0) return filter;
+    return { ...filter, $and: clauses };
+  };
 
-  const recipes = await TechnologistRecipeModel.find(filter)
+  let recipes = await TechnologistRecipeModel.find(buildFilter(ingredientAnd))
     .sort({ createdAt: -1 })
     .limit(limit);
+
+  if (recipes.length === 0 && ingredientAnd.length > 1) {
+    recipes = await TechnologistRecipeModel.find(
+      buildFilter([{ $or: ingredientAnd }]),
+    )
+      .sort({ createdAt: -1 })
+      .limit(limit);
+  }
+
   return res.json(recipes);
 });
 
